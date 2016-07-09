@@ -1,3 +1,7 @@
+import sys
+sys.path.insert(0, '../DistributedSharedMemory/build')
+import pydsm
+
 from statemachine import StateMachine
 
 def start_transitions(current):
@@ -25,6 +29,7 @@ def pathfinder_transitions(current):
     return ("PathFinder", current)
 
 if __name__== "__main__":
+    client = pydsm.Client(42, 60, True)
     m = StateMachine()
     m.add_state("Start", start_transitions)
     m.add_state("Gatewatch", gatewatch_transitions)
