@@ -1,0 +1,3 @@
+[submodule "DistributedSharedMemory"]
+	path = DistributedSharedMemory
+	url = git@github.com:rahulsalvi/DistributedSharedMemory.git
