@@ -5,27 +5,35 @@ import pydsm
 from statemachine import StateMachine
 
 def start_transitions(current):
+    print("in start_transitions")
     return ("Start", current)
     
 def gatewatch_transitions(current):
+    print("in gatewatch_transitions")
     return ("Gatewatch", current)
     
 def move1_transitions(current):
+    print("in move1_transitions")
     return ("Move1m", current)
     
 def visionmove_transitions(current):
+    print("in visionmove_transitions")
     return ("VisionMove", current)
     
 def sonarmove_transitions(current):
+    print("in sonarmove_transitions")
     return ("SonarMove", current)
     
 def avgmove_transitions(current):
+    print("in avgmove_transitions")
     return ("AverageMove", current)
     
 def passgate_transitions(current):
+    print("in passgate_transitions")
     return ("PassThruGate", current)
     
 def pathfinder_transitions(current):
+    print("in pathfinder_transitions")
     return ("PathFinder", current)
 
 if __name__== "__main__":
