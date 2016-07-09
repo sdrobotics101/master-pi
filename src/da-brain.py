@@ -8,6 +8,7 @@ if __name__== "__main__":
     m.add_state("VisionMove", visionmove_transitions)
     m.add_state("SonarMove", sonarmove_transitions)
     m.add_state("AverageMove", avgmove_transitions)
-    m.add_state("PassThruGate, passgate_transitions)
+    m.add_state("PassThruGate", passgate_transitions)
     m.add_state("PathFinder", pathfinder_transitions)
+    m.set_start("Start")
     
