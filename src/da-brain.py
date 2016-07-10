@@ -8,7 +8,7 @@ MAG_SWITCH_GPIO = 17
 from statemachine import StateMachine
 
 def start_transitions(current):
-    while(GPIO.input(MAG_SWITCH_GPIO)):
+    while(GPIO.input(MAG_SWITCH_GPIO)==0):
         time.sleep(1)
     print("in start_transitions")
     return ("Start", current)
