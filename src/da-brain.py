@@ -35,7 +35,7 @@ def passgate_transitions(current):
 def pathfinder_transitions(current):
     print("in pathfinder_transitions")
     return ("PathFinder", current)
-
+    
 if __name__== "__main__":
     client = pydsm.Client(42, 60, True)
     m = StateMachine()
@@ -47,6 +47,7 @@ if __name__== "__main__":
     m.add_state("AverageMove", avgmove_transitions)
     m.add_state("PassThruGate", passgate_transitions)
     m.add_state("PathFinder", pathfinder_transitions)
+    m.add_state("Error", None, end_state=1)
     m.set_start("Start")
     m.run("PLACEHOLDER")
     
