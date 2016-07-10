@@ -5,4 +5,12 @@ GPIO.setup(24, GPIO.OUT, initial=GPIO.LOW)
 GPIO.add_event_detect(17, GPIO.BOTH)
 def my_callback():
     GPIO.output(24, GPIO.input(4))
+    
 GPIO.add_event_callback(17, my_callback)
+try:
+    while(1):
+        tokens = input(">").split()
+except KeyboardInterrupt:
+    print("")
+    print("Exiting")
+    
