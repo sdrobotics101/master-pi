@@ -1,10 +1,15 @@
 import sys
 sys.path.insert(0, '../DistributedSharedMemory/build')
 import pydsm
+import RPi.GPIO as GPIO
+import time
+MAG_SWITCH_GPIO = 17
 
 from statemachine import StateMachine
 
 def start_transitions(current):
+    while(GPIO.input(MAG_SWITCH_GPIO)):
+        time.sleep(1)
     print("in start_transitions")
     return ("Start", current)
     
@@ -38,7 +43,12 @@ def pathfinder_transitions(current):
     
 if __name__== "__main__":
     client = pydsm.Client(42, 60, True)
+    
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(MAG_SWITCH_GPIO, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+    
     m = StateMachine()
+    
     m.add_state("Start", start_transitions)
     m.add_state("Gatewatch", gatewatch_transitions)
     m.add_state("Move1m", move1_transitions)
@@ -48,6 +58,7 @@ if __name__== "__main__":
     m.add_state("PassThruGate", passgate_transitions)
     m.add_state("PathFinder", pathfinder_transitions)
     m.add_state("Error", None, end_state=1)
+    
     m.set_start("Start")
     m.run("PLACEHOLDER")
     
