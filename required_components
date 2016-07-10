@@ -1,0 +1,14 @@
+sudo apt-get update
+sudo apt-get install git
+sudo apt-get install cmake
+sudo apt-get install libboost-all-dev
+sudo apt-get install python3
+sudo apt-get install python3-dev
+sudo apt-get install clang-3.7
+export CC=/usr/lib/llvm-3.7/bin/clang
+export CXX=/usr/lib/llvm-3.7/bin/clang++
+
+pi@raspberrypi:/usr/lib/arm-linux-gnueabihf $ sudo ln -s libboost_python-py34.so.1.55.0 libboost_python3.so
+cd /usr/lib/arm-linux-gnueabihf/
+
+sudo pip install --upgrade RPi.GPIO
