@@ -4,7 +4,7 @@ GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.setup(24, GPIO.OUT, initial=GPIO.LOW)
 GPIO.add_event_detect(17, GPIO.BOTH)
 def my_callback(channel):
-    GPIO.output(24, GPIO.input(4))
+    GPIO.output(24, GPIO.input(17))
     
 GPIO.add_event_callback(17, my_callback)
 try:
