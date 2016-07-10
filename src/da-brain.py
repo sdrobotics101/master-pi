@@ -48,4 +48,5 @@ if __name__== "__main__":
     m.add_state("PassThruGate", passgate_transitions)
     m.add_state("PathFinder", pathfinder_transitions)
     m.set_start("Start")
+    m.run("PLACEHOLDER")
     
