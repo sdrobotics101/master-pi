@@ -1,5 +1,5 @@
 SENSORS_LINEAR = "Linear"
-SENSORS_ANGULAR = "Angular
+SENSORS_ANGULAR = "Angular"
 SENSORS_DATA = "Data"
 MOTOR_HEALTH = "Health"	
 TARGET_LOCATION = "Target Location"	
