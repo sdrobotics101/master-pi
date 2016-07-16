@@ -1,5 +1,5 @@
 import sys
-import constants
+from constants import *
 sys.path.insert(0, '../DistributedSharedMemory/build')
 import pydsm
 import RPi.GPIO as GPIO
