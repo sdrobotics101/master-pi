@@ -55,15 +55,15 @@ if __name__== "__main__":
     client.registerRemoteBuffer(TARGET_LOCATION,SONAR_SERVER_ID,SONAR_SERVER_IP)
 
     
-/*struct ControlInput 
-{union AxisControl 
-    {double vel;
-        float pos[2];
-    } 
-    angular[3], linear[3];
-    uint8_t mode;
-} 
-_controlInput;*/
+#struct ControlInput 
+#{union AxisControl 
+#    {double vel;
+#       float pos[2];
+#   } 
+#   angular[3], linear[3];
+#   uint8_t mode;
+#} 
+#_controlInput;
 
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(MAG_SWITCH_GPIO, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
