@@ -1,4 +1,5 @@
 import sys
+import constants
 sys.path.insert(0, '../DistributedSharedMemory/build')
 import pydsm
 import RPi.GPIO as GPIO
@@ -42,8 +43,28 @@ def pathfinder_transitions(current):
     return ("PathFinder", current)
     
 if __name__== "__main__":
-    client = pydsm.Client(42, 60, True)
+    client = pydsm.Client(MASTER_SERVER_ID, 60, True)
     
+    client.registerLocalBuffer(MASTER_CONTROL,49,False)
+    client.registerLocalBuffer(MASTER_GOALS,3,False)
+    
+    client.registerRemoteBuffer(SENSORS_LINEAR,SENSOR_SERVER_ID,SENSOR_SERVER_IP)
+    client.registerRemoteBuffer(SENSORS_ANGULAR,SENSOR_SERVER_ID,SENSOR_SERVER_IP)
+    client.registerRemoteBuffer(TARGET_LOCATION,FORWARD_VISION_SERVER_ID,FORWARD_VISION_SERVER_IP)
+    client.registerRemoteBuffer(TARGET_LOCATION,DOWNWARD_VISION_SERVER_ID,DOWNWARD_VISION_SERVER_IP)
+    client.registerRemoteBuffer(TARGET_LOCATION,SONAR_SERVER_ID,SONAR_SERVER_IP)
+
+    
+/*struct ControlInput 
+{union AxisControl 
+    {double vel;
+        float pos[2];
+    } 
+    angular[3], linear[3];
+    uint8_t mode;
+} 
+_controlInput;*/
+
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(MAG_SWITCH_GPIO, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
     
