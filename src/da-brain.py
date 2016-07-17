@@ -48,11 +48,11 @@ if __name__== "__main__":
     client.registerLocalBuffer(MASTER_CONTROL,49,False)
     client.registerLocalBuffer(MASTER_GOALS,3,False)
     
-    client.registerRemoteBuffer(SENSORS_LINEAR,SENSOR_SERVER_ID,SENSOR_SERVER_IP)
-    client.registerRemoteBuffer(SENSORS_ANGULAR,SENSOR_SERVER_ID,SENSOR_SERVER_IP)
-    client.registerRemoteBuffer(TARGET_LOCATION,FORWARD_VISION_SERVER_ID,FORWARD_VISION_SERVER_IP)
-    client.registerRemoteBuffer(TARGET_LOCATION,DOWNWARD_VISION_SERVER_ID,DOWNWARD_VISION_SERVER_IP)
-    client.registerRemoteBuffer(TARGET_LOCATION,SONAR_SERVER_ID,SONAR_SERVER_IP)
+    client.registerRemoteBuffer(SENSORS_LINEAR,SENSOR_SERVER_IP,SENSOR_SERVER_ID)
+    client.registerRemoteBuffer(SENSORS_ANGULAR,SENSOR_SERVER_IP,SENSOR_SERVER_ID)
+    client.registerRemoteBuffer(TARGET_LOCATION,FORWARD_VISION_SERVER_IP,FORWARD_VISION_SERVER_ID)
+    client.registerRemoteBuffer(TARGET_LOCATION,DOWNWARD_VISION_SERVER_IP,DOWNWARD_VISION_SERVER_ID)
+    client.registerRemoteBuffer(TARGET_LOCATION,SONAR_SERVER_IP,SONAR_SERVER_ID)
 
     
 #struct ControlInput 
