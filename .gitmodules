@@ -4,3 +4,6 @@
 [submodule "SharedMemoryDefinitions"]
 	path = SharedMemoryDefinitions
 	url = git@gitlab.com:sdrobotics101/SharedMemoryDefinitions.git
+[submodule "PythonSharedBuffers"]
+	path = PythonSharedBuffers
+	url = git@gitlab.com:sdrobotics101/PythonSharedBuffers.git
