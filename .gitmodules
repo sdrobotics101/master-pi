@@ -1,3 +1,6 @@
 [submodule "DistributedSharedMemory"]
 	path = DistributedSharedMemory
 	url = git@github.com:rahulsalvi/DistributedSharedMemory.git
+[submodule "SharedMemoryDefinitions"]
+	path = SharedMemoryDefinitions
+	url = git@gitlab.com:sdrobotics101/SharedMemoryDefinitions.git
