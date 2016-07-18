@@ -21,10 +21,14 @@ def start_transitions(current):
     data,active = client.getRemoteBufferContents(MOTOR_KILL,MOTOR_SERVER_IP,MOTOR_SERVER_ID)
     kill = Unpack(Kill,data)
     while(kill.isKilled and active):
-       print("MURDURIZED")
+       print("MURDERIZED")
+       print(bytes)
+       print(data)
+       print(kill.isKilled)
        data,active = client.getRemoteBufferContents(MOTOR_KILL,MOTOR_SERVER_IP,MOTOR_SERVER_ID)
        kill = Unpack(Kill,data)
        time.sleep(1)
+    print("we out, yo")
     return ("Gatewatch", current)
     
 def gatewatch_transitions(current):
