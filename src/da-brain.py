@@ -1,15 +1,30 @@
 import sys
 sys.path.insert(0, '../DistributedSharedMemory/build')
-from constants import *
 sys.path.insert(0, '../PythonSharedBuffers/src')
+from Constants import *
 import pydsm
 import time
+from ctypes import *
+from Sensor import *
+from Master import *
+from Navigation import *
+from Vision import *
+from Serialization import *
 
 from statemachine import StateMachine
 
 def start_transitions(current):
     print("in start_transitions")
-    return ("Start", current)
+    while(not client.doesRemoteExist(MOTOR_KILL,"10.0.1.2",MOTOR_SERVER_ID)):   
+        time.sleep(1)
+    data.active = client.getRemoteBufferContents(MOTOR_KILL,"10.0.1.2",MOTOR_SERVER_ID)
+    kill = Kill()
+    Unpack(Kill,data)
+    while(kill,isKilled and active):
+        print("MURDURIZED")
+        data,active = client.getRemoteBufferContents(MOTOR_KILL,"10.0.1.2",MOTOR_SERVER_ID)
+        time.sleep(1)
+     return ("Start", current)
     
 def gatewatch_transitions(current):
     print("in gatewatch_transitions")
@@ -42,15 +57,18 @@ def pathfinder_transitions(current):
 if __name__== "__main__":
     client = pydsm.Client(MASTER_SERVER_ID, 60, True)
     
-    client.registerLocalBuffer(MASTER_CONTROL,49,False)
-    client.registerLocalBuffer(MASTER_GOALS,3,False)
+    print("Creating Local Buffers")    
+    client.registerLocalBuffer(MASTER_CONTROL,sizeof(ControlInput),False)
+    client.registerLocalBuffer(MASTER_GOALS,sizeof(Goals),False)
+    client.registerLocalBuffer(MASTER_SENSOR_RESET,sizeof(SensorReset),False)
     
+    print("Creating Remote Buffers")
     client.registerRemoteBuffer(SENSORS_LINEAR,SENSOR_SERVER_IP,SENSOR_SERVER_ID)
     client.registerRemoteBuffer(SENSORS_ANGULAR,SENSOR_SERVER_IP,SENSOR_SERVER_ID)
     client.registerRemoteBuffer(TARGET_LOCATION,FORWARD_VISION_SERVER_IP,FORWARD_VISION_SERVER_ID)
     client.registerRemoteBuffer(TARGET_LOCATION,DOWNWARD_VISION_SERVER_IP,DOWNWARD_VISION_SERVER_ID)
     client.registerRemoteBuffer(TARGET_LOCATION,SONAR_SERVER_IP,SONAR_SERVER_ID)
-    client.registerRemotebuffer(MOTOR_KILL,MOTOR_SERVER_IP,MOTOR_SERVER_ID)    
+    client.registerRemoteBuffer(MOTOR_KILL,MOTOR_SERVER_IP,MOTOR_SERVER_ID)    
 
     
 #struct ControlInput 
@@ -62,10 +80,7 @@ if __name__== "__main__":
 #   uint8_t mode;
 #} 
 #_controlInput;
-
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setup(MAG_SWITCH_GPIO, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-    
+    print("Creating State Machine")
     m = StateMachine()
     
     m.add_state("Start", start_transitions)
