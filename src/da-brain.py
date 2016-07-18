@@ -1,16 +1,13 @@
 import sys
-from constants import *
 sys.path.insert(0, '../DistributedSharedMemory/build')
+from constants import *
+sys.path.insert(0, '../PythonSharedBuffers/src')
 import pydsm
-import RPi.GPIO as GPIO
 import time
-MAG_SWITCH_GPIO = 17
 
 from statemachine import StateMachine
 
 def start_transitions(current):
-    while(GPIO.input(MAG_SWITCH_GPIO)==0):
-        time.sleep(1)
     print("in start_transitions")
     return ("Start", current)
     
@@ -53,6 +50,7 @@ if __name__== "__main__":
     client.registerRemoteBuffer(TARGET_LOCATION,FORWARD_VISION_SERVER_IP,FORWARD_VISION_SERVER_ID)
     client.registerRemoteBuffer(TARGET_LOCATION,DOWNWARD_VISION_SERVER_IP,DOWNWARD_VISION_SERVER_ID)
     client.registerRemoteBuffer(TARGET_LOCATION,SONAR_SERVER_IP,SONAR_SERVER_ID)
+    client.registerRemotebuffer(MOTOR_KILL,MOTOR_SERVER_IP,MOTOR_SERVER_ID)    
 
     
 #struct ControlInput 
