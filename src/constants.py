@@ -1,10 +1,12 @@
-SENSORS_LINEAR = "Linear"
-SENSORS_ANGULAR = "Angular"
-SENSORS_DATA = "Data"
-MOTOR_HEALTH = "Health"	
-TARGET_LOCATION = "Target Location"	
-MASTER_CONTROL = "Control"
-MASTER_GOALS = "Goals"
+SENSORS_LINEAR = "linear"
+SENSORS_ANGULAR = "angular"
+SENSORS_DATA = "data"
+MOTOR_HEALTH = "health"	
+MOTOR_KILL = "kill"
+TARGET_LOCATION = "targetlocation"	
+MASTER_CONTROL = "control"
+MASTER_GOALS = "goals"
+MASTER_SENSOR_RESET = "sensorreset"
 
 MASTER_SERVER_ID = 42
 SENSOR_SERVER_ID = 43
