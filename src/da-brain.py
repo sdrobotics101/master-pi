@@ -12,19 +12,20 @@ from Vision import *
 from Serialization import *
 
 from statemachine import StateMachine
+MOTOR_SERVER_IP = "10.0.1.2"
 
 def start_transitions(current):
     print("in start_transitions")
-    while(not client.doesRemoteExist(MOTOR_KILL,"10.0.1.2",MOTOR_SERVER_ID)):   
-        time.sleep(1)
-    data.active = client.getRemoteBufferContents(MOTOR_KILL,"10.0.1.2",MOTOR_SERVER_ID)
-    kill = Kill()
-    Unpack(Kill,data)
-    while(kill,isKilled and active):
-        print("MURDURIZED")
-        data,active = client.getRemoteBufferContents(MOTOR_KILL,"10.0.1.2",MOTOR_SERVER_ID)
-        time.sleep(1)
-     return ("Start", current)
+    while(not client.doesRemoteExist(MOTOR_KILL,MOTOR_SERVER_IP,MOTOR_SERVER_ID)):   
+       time.sleep(1)
+    data,active = client.getRemoteBufferContents(MOTOR_KILL,MOTOR_SERVER_IP,MOTOR_SERVER_ID)
+    kill = Unpack(Kill,data)
+    while(kill.isKilled and active):
+       print("MURDURIZED")
+       data,active = client.getRemoteBufferContents(MOTOR_KILL,MOTOR_SERVER_IP,MOTOR_SERVER_ID)
+       kill = Unpack(Kill,data)
+       time.sleep(1)
+    return ("Gatewatch", current)
     
 def gatewatch_transitions(current):
     print("in gatewatch_transitions")
@@ -61,6 +62,12 @@ if __name__== "__main__":
     client.registerLocalBuffer(MASTER_CONTROL,sizeof(ControlInput),False)
     client.registerLocalBuffer(MASTER_GOALS,sizeof(Goals),False)
     client.registerLocalBuffer(MASTER_SENSOR_RESET,sizeof(SensorReset),False)
+    controlinput = ControlInput()
+    goals = Goals()
+    sensorreset = SensorReset()
+    client.setLocalBufferContents(MASTER_CONTROL,Pack(controlinput))
+    client.setLocalBufferContents(MASTER_GOALS,Pack(goals))
+    client.setLocalBufferContents(MASTER_SENSOR_RESET,Pack(sensorreset))
     
     print("Creating Remote Buffers")
     client.registerRemoteBuffer(SENSORS_LINEAR,SENSOR_SERVER_IP,SENSOR_SERVER_ID)
