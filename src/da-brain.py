@@ -12,7 +12,7 @@ from Vision import *
 from Serialization import *
 
 from statemachine import StateMachine
-MOTOR_SERVER_IP = "127.0.0.1"
+MOTOR_SERVER_IP = "10.0.0.46"
 
 def start_transitions(current, previous):
     print("in start_transitions")
@@ -22,8 +22,8 @@ def start_transitions(current, previous):
 def kill_transitions(current, previous):
     print("in kill_transitions")
     time.sleep(.5)
-    if previous = "Kill":
-    	return("IsKilled", current, previous)
+    if previous == "Kill":
+           return("IsKilled", current, previous)
     
     previous = "Kill"
     return("Start", current, previous)
@@ -32,12 +32,12 @@ def iskilled_transitions(current, previous):
     print("in iskilled_transitions")
     data, active = client.getRemoteBufferContents(MOTOR_KILL,MOTOR_SERVER_IP,MOTOR_SERVER_ID)
     isKilled = Unpack(Kill, data)
-    if isKilled = True:
+    if isKilled == True:
 #       When "Kill" calls "IsKilled", if it gets a return of
 #       previous = "Kill", the robot is still killed, but
 #       if the return of previous = "IsKilled", the robot
 #       is no longer killed, and transitions to "Start".
-	return("Kill", current, "Kill")
+       return("Kill", current, "Kill")
 
     returnto = previous
     previous = "IsKilled"
@@ -108,5 +108,5 @@ if __name__== "__main__":
     m.add_state("Error", None, end_state=1)
 
     m.set_start("Kill")
-    m.run("PLACEHOLDER")
+    m.run("Kill")
 
