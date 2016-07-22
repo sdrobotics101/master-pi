@@ -14,51 +14,53 @@ from Serialization import *
 from statemachine import StateMachine
 MOTOR_SERVER_IP = "127.0.0.1"
 
-def start_transitions(current, previous):
+def start_transitions(current):
     print("in start_transitions")
-    previous = "Start"
-    return("GateDeadRecon", current, previous)
-
-def kill_transitions(current, previous):
-    print("in kill_transitions")
-    time.sleep(.5)
-    if previous = "Kill":
-    	return("IsKilled", current, previous)
-    
-    previous = "Kill"
-    return("Start", current, previous)
-
-def iskilled_transitions(current, previous):
-    print("in iskilled_transitions")
+    while(not client.doesRemoteExist(MOTOR_KILL,MOTOR_SERVER_IP,MOTOR_SERVER_ID)):
+       time.sleep(1)
     data, active = client.getRemoteBufferContents(MOTOR_KILL,MOTOR_SERVER_IP,MOTOR_SERVER_ID)
-    isKilled = Unpack(Kill, data)
-    if isKilled = True:
-#       When "Kill" calls "IsKilled", if it gets a return of
-#       previous = "Kill", the robot is still killed, but
-#       if the return of previous = "IsKilled", the robot
-#       is no longer killed, and transitions to "Start".
-	return("Kill", current, "Kill")
+    kill = Unpack(Kill, data)
+    while(kill.isKilled and active):
+       print("KILLED")
+       time.sleep(1)
+       data, active = client.getRemoteBufferContents(MOTOR_KILL,MOTOR_SERVER_IP,MOTOR_SERVER_ID)
+       kill = Unpack(Kill,data)
+    return ("Gatewatch", current)
 
-    returnto = previous
-    previous = "IsKilled"
-    return(returnto, current, previous)
-
-def gatedr_transitions(current, previous):
-    print("in gatedr_transitions")
+def gatewatch_transitions(current):
+    print("in gatewatch_transitions")
     time.sleep(1)
-    previous = "GateDeadRecon"
-    return("GateDeadRecon", current, previous)
+    data, active = client.getRemoteBufferContents(MOTOR_KILL,MOTOR_SERVER_IP,MOTOR_SERVER_ID)
+    kill = Unpack(Kill, data)
+    
+    if isKilled
+	return ("Start", current)
+    
+    return ("Gatewatch", current)
 
-def gatevision_transitions(current, previous):
-    print("in gatevision_transitions")
-    previous = "GateVision"
-    return("GateVision", current, previous)
+def move1_transitions(current):
+    print("in move1_transitions")
+    return ("Move1m", current)
 
-def pathfinder_transitions(current, previous):
+def visionmove_transitions(current):
+    print("in visionmove_transitions")
+    return ("VisionMove", current)
+
+def sonarmove_transitions(current):
+    print("in sonarmove_transitions")
+    return ("SonarMove", current)
+
+def avgmove_transitions(current):
+    print("in avgmove_transitions")
+    return ("AverageMove", current)
+
+def passgate_transitions(current):
+    print("in passgate_transitions")
+    return ("PassThruGate", current)
+
+def pathfinder_transitions(current):
     print("in pathfinder_transitions")
-    previous = "PathFinder"
-    return("PathFinder", current, previous)
-
+    return ("PathFinder", current)
 
 if __name__== "__main__":
     client = pydsm.Client(MASTER_SERVER_ID, 60, True)
@@ -67,7 +69,7 @@ if __name__== "__main__":
     client.registerLocalBuffer(MASTER_CONTROL,sizeof(ControlInput),False)
     client.registerLocalBuffer(MASTER_GOALS,sizeof(Goals),False)
     client.registerLocalBuffer(MASTER_SENSOR_RESET,sizeof(SensorReset),False)
-    time.sleep(1)
+    sleep(1)
     controlinput = ControlInput()
     goals = Goals()
     sensorreset = SensorReset()
@@ -79,12 +81,11 @@ if __name__== "__main__":
     print("Creating Remote Buffers")
     client.registerRemoteBuffer(SENSORS_LINEAR,SENSOR_SERVER_IP,SENSOR_SERVER_ID)
     client.registerRemoteBuffer(SENSORS_ANGULAR,SENSOR_SERVER_IP,SENSOR_SERVER_ID)
-    client.registerRemoteBuffer(MASTER_SENSOR_RESET,MASTER_SERVER_IP,MASTER_SERVER_ID)
     client.registerRemoteBuffer(TARGET_LOCATION,FORWARD_VISION_SERVER_IP,FORWARD_VISION_SERVER_ID)
     client.registerRemoteBuffer(TARGET_LOCATION,DOWNWARD_VISION_SERVER_IP,DOWNWARD_VISION_SERVER_ID)
     client.registerRemoteBuffer(TARGET_LOCATION,SONAR_SERVER_IP,SONAR_SERVER_ID)
     client.registerRemoteBuffer(MOTOR_KILL,MOTOR_SERVER_IP,MOTOR_SERVER_ID)
-    time.sleep(1)
+    sleep(1)
 
 
 #struct ControlInput
@@ -100,13 +101,15 @@ if __name__== "__main__":
     m = StateMachine()
 
     m.add_state("Start", start_transitions)
-    m.add_state("Kill", kill_transitions)
-    m.add_state("IsKilled", iskilled_transitions)
-    m.add_state("GateDeadRecon", gatedr_transitions)
-    m.add_state("GateVision", gatevision_transitions)
+    m.add_state("Gatewatch", gatewatch_transitions)
+    m.add_state("Move1m", move1_transitions)
+    m.add_state("VisionMove", visionmove_transitions)
+    m.add_state("SonarMove", sonarmove_transitions)
+    m.add_state("AverageMove", avgmove_transitions)
+    m.add_state("PassThruGate", passgate_transitions)
     m.add_state("PathFinder", pathfinder_transitions)
     m.add_state("Error", None, end_state=1)
 
-    m.set_start("Kill")
+    m.set_start("Start")
     m.run("PLACEHOLDER")
 

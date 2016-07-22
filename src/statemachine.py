@@ -22,7 +22,8 @@ class StateMachine:
             raise  InitializationError("at least one state must be an end_state")
     
         while True:
-            (newState, cargo) = handler(cargo)
+            (newState, cargo, previous) = handler(cargo, self.startState)
+            print(newState)
             if newState.upper() in self.endStates:
                 print("reached ", newState)
                 break 
