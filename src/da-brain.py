@@ -18,9 +18,9 @@ def start_transitions(current, previous):
     print("Resetting Position and Starting...")
     sensorreset = SensorReset()
 #this is setting the x, y, and z axes to 0
-    sensorreset.pos[0] = 0
-    sensorreset.pos[1] = 0
-    sensorreset.pos[2] = 0
+    sensorreset.pos[xaxis] = 0
+    sensorreset.pos[yaxis] = 0
+    sensorreset.pos[zaxis] = 0
 #this toggles the boolean change   
     sensorreset.reset = not sensorreset.reset
 #this packs it all up
@@ -65,7 +65,7 @@ def gatedr_transitions(current, previous):
     gateDRPrevious = "GateDeadReckon"
 
 #step 1: check if the robot is killed
-    if previous == "Start":
+    if previous == "Start" or previous == "GateDeadReckon":
        return("IsKilled", current, gateDRPrevious)
 
 #step 2: check if forward vision has feedback    
@@ -78,26 +78,26 @@ def gatedr_transitions(current, previous):
 
 #step 4: set velocity in m/s
     controlinput = ControlInput()
-#setting angular position in the x,y, and z axes 
-#with pos[0]=position and pos[1]=time it takes
-    controlinput.angular[0].pos[0] = 0
-    controlinput.angular[0].pos[1] = 0
-    controlinput.angular[1].pos[0] = 0
-    controlinput.angular[1].pos[1] = 0
-    controlinput.angular[2].pos[0] = 0
-    controlinput.angular[2].pos[1] = 0
 
-#setting linear velocity in the x, y, and z axes
-    controlinput.linear[0].vel = 3
-    controlinput.linear[1].vel = 3
-    controlinput.linear[2].vel = 0
+#setting angular Position
+    controlinput.angular[xaxis].pos[POSITION] = 0
+    controlinput.angular[xaxis].pos[TIME] = 0
+    controlinput.angular[yaxis].pos[POSITION] = 0
+    controlinput.angular[yaxis].pos[TIME] = 0
+    controlinput.angular[zaxis].pos[POSITION] = 0
+    controlinput.angular[zaxis].pos[TIME] = 0
+
+#setting linear velocity
+    controlinput.linear[xaxis].vel = 3
+    controlinput.linear[yaxis].vel = 3
+    controlinput.linear[zaxis].vel = 0
 
 #setting the mode, with lin(z,y,x) and ang(z,y,x)
     controlinput.mode = 39
     
     client.setLocalBufferContents(MASTER_CONTROL,Pack(controlinput))
 
-    return("GateDeadReckon", current, previous)
+    return("GateDeadReckon", current, gateDRPrevious)
 
 def gatevisionfeed_transitions(current, previous):
     print("Does Vision Have Feedback?")
@@ -107,8 +107,7 @@ def gatevisionfeed_transitions(current, previous):
     seeGate = Unpack(Location, data)
 #this is for testing purposes only.  Remove later.
     seeGate.confidence = 127
-
-    if seeGate.confidence >= 128:
+    if seeGate.confidence[0] >= 128:
        print("Vision has Feedback!")
        return("GateVision", current, gateVFPrevious)
 
@@ -132,9 +131,9 @@ def pathfinder_transitions(current, previous):
     data, active = client.getRemoteBufferContents(TARGET_LOCATION,DOWNWARD_VISION_SERVER_IP,DOWNWARD_VISION_SERVER_ID)
     seePath = Unpack(Location, data)
 #this is for testing purposes only.  Remove later.
-    seePath.confidence = 128
+    seePath.confidence = 127
 
-    if seePath.confidence >= 128:
+    if seePath.confidence[0] >= 128:
        print("The path has been spotted!")
        return("Error", current, pathPrevious)
 
@@ -195,5 +194,5 @@ if __name__== "__main__":
     m.add_state("Error", None, end_state=1)
 
     m.set_start("Kill")
-    m.run("Kill")
+    m.run("PLACEHOLDER")
 
