@@ -14,7 +14,7 @@ from Serialization import *
 from statemachine import StateMachine
 #MOTOR_SERVER_IP = "10.0.0.46"
 
-def start_transitions(current, previous):
+def start_transitions(cargo, previous):
     print("Resetting Position and Starting...")
     sensorreset = SensorReset()
 #this is setting the x, y, and z axes to 0
@@ -26,20 +26,18 @@ def start_transitions(current, previous):
 #this packs it all up
     client.setLocalBufferContents(MASTER_SENSOR_RESET,Pack(sensorreset))
 
-    previous = "Start"
-    return("GateDeadReckon", current, previous)
+    return("GateDeadReckon", cargo)
 
-def kill_transitions(current, previous):
+def kill_transitions(cargo, previous):
     print("Checking if the robot is killed...")
     time.sleep(.5)
-    killPrevious = "Kill"
 #keeps on checking whether the robot is killed or not
     if previous == "Kill":
-           return("IsKilled", current, killPrevious)
+           return("IsKilled", cargo)
     
-    return("Start", current, previous)
+    return("Start", cargo)
 
-def iskilled_transitions(current, previous):
+def iskilled_transitions(cargo, previous):
     print("Is the robot killed?")
     data, active = client.getRemoteBufferContents(MOTOR_KILL,MOTOR_SERVER_IP,MOTOR_SERVER_ID)
     killObject = Unpack(Kill, data)
@@ -53,28 +51,25 @@ def iskilled_transitions(current, previous):
 #       previous = "Kill", the robot is still killed, but
 #       if the return of previous = "IsKilled", the robot
 #       is no longer killed, and transitions to "Start".
-       return("Kill", current, "Kill")
+       return("Kill", cargo)
 
-    returnto = previous
-    previous = "IsKilled"
-    return(returnto, current, previous)
+    return(previous, cargo)
 
-def gatedr_transitions(current, previous):
+def gatedr_transitions(cargo, previous):
     print("Navigating to Gate using Dead Reckoning...") 
     time.sleep(.5)
-    gateDRPrevious = "GateDeadReckon"
 
 #step 1: check if the robot is killed
     if previous == "Start" or previous == "GateDeadReckon":
-       return("IsKilled", current, gateDRPrevious)
+       return("IsKilled", cargo)
 
 #step 2: check if forward vision has feedback    
     elif previous == "IsKilled":
-       return("GateVisionFeedback", current, gateDRPrevious)
+       return("GateVisionFeedback", cargo)
 
 #step 3: check if downward vision has feedback
     elif previous == "GateVisionFeedback":
-       return("PathFinder", current, gateDRPrevious)
+       return("PathFinder", cargo)
 
 #step 4: set velocity in m/s
     controlinput = ControlInput()
@@ -97,36 +92,37 @@ def gatedr_transitions(current, previous):
     
     client.setLocalBufferContents(MASTER_CONTROL,Pack(controlinput))
 
-    return("GateDeadReckon", current, gateDRPrevious)
+    return("GateDeadReckon", cargo)
 
-def gatevisionfeed_transitions(current, previous):
+def gatevisionfeed_transitions(cargo, previous):
     print("Does Vision Have Feedback?")
-    gateVFPrevious = "GateVisionFeedback"
         
     data, active = client.getRemoteBufferContents(TARGET_LOCATION,FORWARD_VISION_SERVER_IP,FORWARD_VISION_SERVER_ID)    
     seeGate = Unpack(Location, data)
 #this is for testing purposes only.  Remove later.
-    seeGate.confidence = 127
+    seeGate.confidence = 128
+
     if seeGate.confidence[0] >= 128:
        print("Vision has Feedback!")
-       return("GateVision", current, gateVFPrevious)
+       return("GateVision", cargo)
 
     print("Vision doesn't have feedback :(")
-    return("GateDeadReckon", current, gateVFPrevious)
+    return("GateDeadReckon", cargo)
 
-def gatevision_transitions(current, previous):
+def gatevision_transitions(cargo, previous):
     print("Orienting Robot to Gate with Vision...")
     time.sleep(.5)
-    gateVPrevious = "GateVision"
 
-    if previous == "GateVisionFeedback" or previous == "IsKilled":
-           return("IsKilled", current, gateVPrevious)
+    if previous == "GateVisionFeedback":
+       return("IsKilled", cargo)
+    
+    elif previous == "IsKilled":
+       return("PathFinder", cargo) 
 
-    return("GateVision", current, gateVPrevious)
+    return("GateDeadReckon", cargo)
 
-def pathfinder_transitions(current, previous):
+def pathfinder_transitions(cargo, previous):
     print("in pathfinder_transitions")
-    pathPrevious = "PathFinder"
 
     data, active = client.getRemoteBufferContents(TARGET_LOCATION,DOWNWARD_VISION_SERVER_IP,DOWNWARD_VISION_SERVER_ID)
     seePath = Unpack(Location, data)
@@ -135,11 +131,68 @@ def pathfinder_transitions(current, previous):
 
     if seePath.confidence[0] >= 128:
        print("The path has been spotted!")
-       return("Error", current, pathPrevious)
+       return("PathOrientation", cargo)
 
     print("No path spotted :(")
-    return("GateDeadReckon", current, pathPrevious)
+    return("GateDeadReckon", cargo)
 
+def pathorient_transitions(cargo, previous):
+    print("Orienting robot to path...")
+    time.sleep(.5)
+    return("BuoyDeadReckon", cargo)
+
+def buoydr_transitions(cargo, previous):
+    print("Dead Reckoning towards buoys...")
+    time.sleep(.5)
+
+    if previous == "PathOrientation" or previous == "BuoyDeadReckon":
+       return("IsKilled", cargo)
+
+    elif previous == "IsKilled":
+       return("CheckRed", cargo)
+
+    return("BuoyDeadReckon", cargo)
+
+def checkred_transitions(cargo, previous):
+    print("Checking if camera sees a red buoy...")
+
+    data, active = client.getRemoteBufferContents(TARGET_LOCATION,FORWARD_VISION_SERVER_IP,FORWARD_VISION_SERVER_ID)    
+    seeRed = Unpack(Location, data)
+
+#this is for testing only remove later
+    seeRed.confidence = 128
+    if seeRed.confidence[0] >= 128:
+       print("We have a visual!")
+       return("BuoyVision", cargo)
+
+    return("BuoyDeadReckon", cargo)
+
+def checkyellow_transitions(cargo, previous):
+    print("Looking for the yellow buoy...")
+
+    data, active = client.getRemoteBufferContents(TARGET_LOCATION,FORWARD_VISION_SERVER_IP,FORWARD_VISION_SERVER_ID)    
+    seeYellow = Unpack(Location, data)
+
+#for testing
+    seeYellow.confidence = 127
+    if seeYellow.confidence[0] >= 128:
+       print("We have a visual! Correcting course...")
+#      here is where we'll correct the orientation of the robot to go to yellow
+       return("BuoyVision", cargo)
+
+    print("no visual :(")
+    return("BuoyVision", cargo)
+    
+def buoyvision_transitions(cargo, previous):
+    print("Moving to yellow Buoy...")
+
+    if previous == "CheckRed":
+       return("IsKilled", cargo)
+
+    elif previous == "IsKilled":
+       return("CheckYellow", cargo)
+
+    return("BuoyVision", cargo) 
 
 if __name__== "__main__":
     print("Initializing Client")
@@ -191,7 +244,13 @@ if __name__== "__main__":
     m.add_state("GateVisionFeedback", gatevisionfeed_transitions)
     m.add_state("GateVision", gatevision_transitions)
     m.add_state("PathFinder", pathfinder_transitions)
+    m.add_state("PathOrientation", pathorient_transitions)
+    m.add_state("BuoyDeadReckon", buoydr_transitions)
+    m.add_state("CheckRed", checkred_transitions)
+    m.add_state("CheckYellow", checkyellow_transitions)
+    m.add_state("BuoyVision", buoyvision_transitions)
     m.add_state("Error", None, end_state=1)
+    m.add_state("EndOfRun", None, end_state=1)
 
     m.set_start("Kill")
     m.run("PLACEHOLDER")

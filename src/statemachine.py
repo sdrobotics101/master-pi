@@ -21,15 +21,17 @@ class StateMachine:
         if not self.endStates:
             raise  InitializationError("at least one state must be an end_state")
         
-        newPrevious = cargo
+        previous = ""
+        current = self.startState
 
         while True:
-            previous = newPrevious
-            (newState, cargo, newPrevious) = handler(cargo, previous)
-            print(newState)
-            if newState.upper() in self.endStates:
-                print("reached ", newState)
+            (newState, cargo) = handler(cargo, previous)
+            previous = current
+            current = newState
+            print(current)
+            if current.upper() in self.endStates:
+                print("reached ", current)
                 break 
             else:
-                handler = self.handlers[newState.upper()]     
+                handler = self.handlers[current.upper()]
 
