@@ -5,7 +5,7 @@ from Constants import *
 import pydsm
 import time
 import math
-import numpy
+import numpy as np
 from ctypes import *
 from Sensor import *
 from Master import *
@@ -15,16 +15,15 @@ from Serialization import *
 from Quaternions import *
 
 from statemachine import StateMachine
-#MOTOR_SERVER_IP = "10.0.0.46"
 
 def start_transitions(cargo, previous):
 	print("Resetting Position and Starting...")
 	sensorreset = SensorReset()
-#this is setting the x, y, and z axes to 0
+#this sets the x,y,and z axes to 0, resetting the pool coordinates at the dock
 	sensorreset.pos[xaxis] = 0
 	sensorreset.pos[yaxis] = 0
 	sensorreset.pos[zaxis] = 0
-#this toggles the boolean change   
+#this toggles the boolean change
 	sensorreset.reset = not sensorreset.reset
 #this packs it all up
 	client.setLocalBufferContents(MASTER_SENSOR_RESET,Pack(sensorreset))
@@ -35,16 +34,14 @@ def kill_transitions(cargo, previous):
 	print("Checking if the robot is killed...")
 	time.sleep(.5)
 #keeps on checking whether the robot is killed or not
-	if previous == "Kill":
-		return("IsKilled", cargo)
-
-	return("Start", cargo)
+	return("IsKilled", cargo)
 
 def iskilled_transitions(cargo, previous):
 	print("Is the robot killed?")
-	data, active = client.getRemoteBufferContents(MOTOR_KILL,MOTOR_SERVER_IP,MOTOR_SERVER_ID)
-	killObject = Unpack(Kill, data)
+#	data, active = client.getRemoteBufferContents(MOTOR_KILL,MOTOR_SERVER_IP,MOTOR_SERVER_ID)
+#	killObject = Unpack(Kill, data)
 #this is for testing purposes only, remove later 
+	killObject = Kill()
 	killObject.isKilled = False
 	active = True
 
@@ -54,10 +51,14 @@ def iskilled_transitions(cargo, previous):
 #       previous = "Kill", the robot is still killed, but
 #       if the return of previous = "IsKilled", the robot
 #       is no longer killed, and transitions to "Start".
+		print("The robot is killed")
 		return("Kill", cargo)
 
+	elif previous == "KILL":
+		print("The robot is not killed, starting...")
+		return("Start", cargo)
 	return(previous, cargo)
-
+	
 def gatedr_transitions(cargo, previous):
 	print("Navigating to Gate using Dead Reckoning...") 
 	time.sleep(.5)
@@ -137,10 +138,11 @@ def gatevision_transitions(cargo, previous):
 	pointLocation = LocationArray()
 	poolPosition = Angular()
 	
-	poolPosition.pos[QUAT_W] = 0
-	poolPosition.pos[QUAT_X] = 0
-	poolPosition.pos[QUAT_Y] = 0
-	poolPosition.pos[QUAT_Z] = 0
+#testing variables
+	poolPosition.pos[QUAT_W] = 1
+	poolPosition.pos[QUAT_X] = 1
+	poolPosition.pos[QUAT_Y] = 1
+	poolPosition.pos[QUAT_Z] = 1
 
 	controlinput = ControlInput()
 	if active:
@@ -155,38 +157,47 @@ def gatevision_transitions(cargo, previous):
 		yaw = euler[zaxis]
 
 #step 1: check if the robot is killed
-	if previous == "GateVisionFeedback":
+	if previous == "GateVisionFeedback" or previous == "GateVision":
 		return("IsKilled", cargo)
     
 #step 2: check if the downward camera has located the path
 	elif previous == "IsKilled":
 		return("PathFinder", cargo) 
 
-	seeGate.type[0] == GATEPOLE #testing variable
+	pointLocation.locations[0].loctype = GATEPOLE #testing variable
+	active = 1
 
 	if active:
-		if previous == "PathFinder" and seeGate.type[0] == GATEPOLE:
+		if previous == "PathFinder" and pointLocation.locations[0].loctype == GATEPOLE:
+			print("Orienting robot to gate...")
 			gateX = (pointLocation.locations[0].x + pointLocation.locations[1].x)/2 
 			gateY = (pointLocation.locations[0].y + pointLocation.locations[1].y)/2
 			gateZ = (pointLocation.locations[0].z + pointLocation.locations[1].z)/2
+			#testing, nigga
+			gateX = 1
+			gateY = 1
+			gateZ = 1
+
 			controlinput.angular[xaxis].pos[POSITION] = 0
 			controlinput.angular[xaxis].pos[TIME] = 0
 			controlinput.angular[yaxis].pos[POSITION] = 0
 			controlinput.angular[yaxis].pos[TIME] = 0
-			controlinput.angular[zaxis].pos[POSITION] = atan(gateY/gateX)
+			controlinput.angular[zaxis].pos[POSITION] = math.atan(gateY/gateX)
 			controlinput.angular[zaxis].pos[TIME] = 0
  
-			matYaw = array([cos(-yaw),-sin(-yaw)],[sin(-yaw),cos(-yaw)])
-			matPos = array([gateX],[gateY])
-			matPos = matrixmultiply(matYaw, matPos)
+			matYaw = np.array([[math.cos(-yaw),-math.sin(-yaw)],[math.sin(-yaw),math.cos(-yaw)]])
+			matPos = np.array([[gateX],[gateY]])
+			matPos = np.dot(matYaw, matPos)
 #		This velocity value is changable, it is setting the total velocity when going towards the gate   
 			V = 1
  
-			controlinput.linear[xaxis].vel = sqrt(pow(V, 2) - pow(matPos[1,0], 2))
+			controlinput.linear[xaxis].vel = math.sqrt(pow(V, 2) - math.pow(matPos[1,0], 2))
 			controlinput.linear[yaxis].vel = matPos[1,0]
 			controlinput.linear[zaxis].pos[POSITION] = 0
 			controlinput.linear[zaxis].pos[TIME] = 0
-
+			return("GateVision", cargo)
+	
+	print("Orientatinon failed.")
 	return("GateDeadReckon", cargo)
 
 def pathfinder_transitions(cargo, previous):
@@ -198,14 +209,14 @@ def pathfinder_transitions(cargo, previous):
 	
 	active = 1
 	seePath = Location
-	seePath.confidence = 128
+	seePath.confidence = 127
 	if active:
 		if seePath.confidence >= CONFIDENCE:
 			print("The path has been spotted!")
 			return("PathOrientation", cargo)
 
 	print("No path spotted :(")
-	return("GateDeadReckon", cargo)
+	return(previous, cargo)
 
 def pathorient_transitions(cargo, previous):
 	print("Orienting robot to path...")
@@ -242,7 +253,7 @@ def checkred_transitions(cargo, previous):
 
 #this is for testing only remove later
 	active = 1
-	seeRed = Location
+	seeRed = Location()
 	seeRed.confidence = 128
 
 	if active:
@@ -254,27 +265,71 @@ def checkred_transitions(cargo, previous):
 
 def checkyellow_transitions(cargo, previous):
 	print("Looking for the yellow buoy...")
-
+	time.sleep(.5)
 #	data, active = client.getRemoteBufferContents(TARGET_LOCATION,FORWARD_VISION_SERVER_IP,FORWARD_VISION_SERVER_ID)    
+#	pose, ret = client.getREmoteBufferContents(SENSORS_ANGULAR,SENSORS_SERVER_IP,SENSORS_SERVER_ID)
 #	seeYellow = Unpack(Location, data)
+#	poolPosition = Unpack(Angular, pose)
 
 #for testing
 	active = 1
-	seeYellow = Location
-	seeYellow.confidence = 127
+	seeYellow = Location()
+	poolPosition = Angular()
+#testing var
+	poolPosition.pos[QUAT_W] = 0
+	poolPosition.pos[QUAT_X] = 0
+	poolPosition.pos[QUAT_Y] = 0
+	poolPosition.pos[QUAT_Z] = 0
+
+	controlinput = ControlInput()
+#testing var
+	seeYellow.confidence = 128
+	seeYellow.loctype = YELLOW	
+
 	if active:
-		if seeYellow.confidence >= CONFIDENCE:
+		quaternion = (
+ 		poolPosition.pos[QUAT_W],
+		poolPosition.pos[QUAT_X],
+		poolPosition.pos[QUAT_Y],
+		poolPosition.pos[QUAT_Z])
+		euler = test_q2e(quaternion)
+		roll = euler[xaxis]
+		pitch = euler[yaxis]
+		yaw = euler[zaxis]
+
+	if active:
+		if seeYellow.confidence >= CONFIDENCE and seeYellow.loctype == YELLOW:
 			print("We have a visual! Correcting course...")
-#       here is where we'll correct the orientation of the robot to go to yellow
+			yellowX = seeYellow.x
+			yellowY = seeYellow.y
+			yellowZ = seeYellow.z
+			controlinput.angular[xaxis].pos[POSITION] = 0
+			controlinput.angular[xaxis].pos[TIME] = 0
+			controlinput.angular[yaxis].pos[POSITION] = 0
+			controlinput.angular[yaxis].pos[TIME] = 0
+			controlinput.angular[zaxis].pos[POSITION] = math.atan(yellowY/yellowX)
+			controlinput.angular[zaxis].pos[TIME] = 0
+ 
+			matYaw = np.array([[math.cos(-yaw),-math.sin(-yaw)],[math.sin(-yaw),math.cos(-yaw)]])
+			matPos = np.array([[yellowX],[yellowY]])
+			matPos = np.dot(matYaw, matPos)
+#		This velocity value is changable, it is setting the total velocity when going towards the gate   
+			V = 1
+ 
+			controlinput.linear[xaxis].vel = math.sqrt(pow(V, 2) - math.pow(matPos[1,0], 2))
+			controlinput.linear[yaxis].vel = matPos[1,0]
+			controlinput.linear[zaxis].pos[POSITION] = 0
+			controlinput.linear[zaxis].pos[TIME] = 0
 			return("BuoyVision", cargo)
 
 	print("no visual :(")
-	return("BuoyVision", cargo)
+	return("BouyDeadReckon", cargo)
     
 def buoyvision_transitions(cargo, previous):
 	print("Moving to yellow Buoy...")
+	time.sleep(.5)
 
-	if previous == "CheckRed":
+	if previous == "CheckRed" or previous == "BouyVision" or previous == "CheckYellow":
 		return("IsKilled", cargo)
 
 	elif previous == "IsKilled":
@@ -305,23 +360,12 @@ if __name__== "__main__":
 	print("Creating Remote Buffers")
 	client.registerRemoteBuffer(SENSORS_LINEAR,SENSOR_SERVER_IP,SENSOR_SERVER_ID)
 	client.registerRemoteBuffer(SENSORS_ANGULAR,SENSOR_SERVER_IP,SENSOR_SERVER_ID)
-	#TODO delete client.registerRemoteBuffer(MASTER_SENSOR_RESET,MASTER_SERVER_IP,MASTER_SERVER_ID)
 	client.registerRemoteBuffer(TARGET_LOCATION,FORWARD_VISION_SERVER_IP,FORWARD_VISION_SERVER_ID)
 	client.registerRemoteBuffer(TARGET_LOCATION,DOWNWARD_VISION_SERVER_IP,DOWNWARD_VISION_SERVER_ID)
 	client.registerRemoteBuffer(TARGET_LOCATION,SONAR_SERVER_IP,SONAR_SERVER_ID)
 	client.registerRemoteBuffer(MOTOR_KILL,MOTOR_SERVER_IP,MOTOR_SERVER_ID)
 	time.sleep(1)
 
-
-#struct ControlInput
-#{union AxisControl
-#    {double vel;
-#       float pos[2];
-#   }
-#   angular[3], linear[3];
-#   uint8_t mode;
-#}
-#_controlInput;
 	print("Creating State Machine")
 	m = StateMachine()
 
