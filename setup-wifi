@@ -1,0 +1,61 @@
+To setup wifi:
+
+1) Compile driver steps:
+
+install gnu compiler collection and other prerequisites:
+    sudo apt-get install build-essential libncurses5-dev
+
+install git:
+    sudo apt-get install git
+
+Get kernel sources (from https://github.com/notro/rpi-source/wiki):
+    Install
+        sudo wget https://raw.githubusercontent.com/notro/rpi-source/master/rpi-source -O /usr/bin/rpi-source && sudo chmod +x /usr/bin/rpi-source && /usr/bin/rpi-source -q --tag-update
+    Run
+        rpi-source
+    
+
+Get driver source:
+    git clone https://github.com/Myria-de/mt7610u_wifi_sta_v3002_dpo_20130916.git
+
+Compile driver:
+    cd mt7610u_wifi_sta_v3002_dpo_20130916
+    make
+    sudo make install
+    sudo cp RT2870STA.dat  /etc/Wireless/RT2870STA/RT2870STA.dat
+
+Reboot
+ 
+ 2) Set up wifi:
+ 
+Add to /etc/network/interfaces:
+    auto ra0
+    allow-hotplug ra0
+    iface ra0 inet manual
+        wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
+
+Run:
+    wpa_passphrase sdrobotics101 voodoo.sh
+
+Run:
+    sudo vi /etc/wpa_supplicant/wpa_supplicant.conf
+
+Add lines:
+network={
+        ssid="sdrobotics101"
+        proto=WPA RSN
+        scan_ssid=1
+        key_mgmt=WPA-PSK
+        pairwise=CCMP TKIP
+        group=CCMP TKIP
+        psk=38b7925df211e66b730decea93c031ef4d2b9faa15b965ce95d9783044014689
+}
+
+(if wpa_passphrase has different psk, use that)
+
+Setup routing:
+    sudo vi /etc/sysctl.conf
+    (uncomment line net.ipv4.ip_forward=1)
+ 
+ Reboot
+ 
