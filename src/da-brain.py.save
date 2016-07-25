@@ -1,0 +1,147 @@
+import sys
+sys.path.insert(0, '../DistributedSharedMemory/build')
+sys.path.insert(0, '../PythonSharedBuffers/src')
+from Constants import *
+import pydsm
+import time
+import math
+from ctypes import *
+from Sensor import *
+from Master import *
+from Navigation import *
+from Vision import *
+from Serialization import *
+
+from statemachine import StateMachine
+#MOTOR_SERVER_IP = "10.0.0.46"
+
+def start_transitions(cargo, previous):
+    print("Resetting Position and Starting...")
+    sensorreset = SensorReset()
+#this is setting the x, y, and z axes to 0
+    sensorreset.pos[xaxis] = 0
+    sensorreset.pos[yaxis] = 0
+    sensorreset.pos[zaxis] = 0
+#this toggles the boolean change   
+    sensorreset.reset = not sensorreset.reset
+#this packs it all up
+    client.setLocalBufferContents(MASTER_SENSOR_RESET,Pack(sensorreset))
+
+    return("GateDeadReckon", cargo)
+
+def kill_transitions(cargo, previous):
+    print("Checking if the robot is killed...")
+    time.sleep(.5)
+#keeps on checking whether the robot is killed or not
+    if previous == "Kill":
+	return("IsKilled", cargo)
+    
+    return("Start", cargo)
+
+def iskilled_transitions(cargo, previous):
+    print("Is the robot killed?")
+    data, active = client.getRemoteBufferContents(MOTOR_KILL,MOTOR_SERVER_IP,MOTOR_SERVER_ID)
+    killObject = Unpack(Kill, data)
+#this is for testing purposes only, remove later 
+    killObject.isKilled = False
+    active = True
+
+    print(killObject.isKilled)
+    if killObject.isKilled == True or active == False:
+#       When "Kill" calls "IsKilled", if it gets a return of
+#       previous = "Kill", the robot is still killed, but
+#       if the return of previous = "IsKilled", the robot
+#       is no longer killed, and transitions to "Start".
+	return("Kill", cargo)
+
+    return(previous, cargo)
+
+def gatedr_transitions(cargo, previous):
+    print("Navigating to Gate using Dead Reckoning...") 
+    time.sleep(.5)
+
+#step 0: broadcast goals to all other pis
+    goals = Goals()
+    goals.forwardVision = GOAL_FIND_GATE
+    goals.downwardVision = GOALS_FIND_PATH
+    goals.sonar = GOALS_NONE
+
+    client.setLocalBufferContents(MASTER_GOALS,Pack(goals))
+
+#step 1: check if the robot is killed
+    if previous == "Start" or previous == "GateDeadReckon":
+	return("IsKilled", cargo)
+
+#step 2: check if forward vision has feedback    
+    elif previous == "IsKilled":
+	return("GateVisionFeedback", cargo)
+
+#step 3: check if downward vision has feedback
+    elif previous == "GateVisionFeedback":
+	return("PathFinder", cargo)
+
+#step 4: set velocity in m/s
+    controlinput = ControlInput()
+
+#setting angular Position
+    controlinput.angular[xaxis].pos[POSITION] = 0
+    controlinput.angular[xaxis].pos[TIME] = 0
+    controlinput.angular[yaxis].pos[POSITION] = 0
+    controlinput.angular[yaxis].pos[TIME] = 0
+    controlinput.angular[zaxis].pos[POSITION] = 0
+    controlinput.angular[zaxis].pos[TIME] = 0
+
+#setting linear velocity
+    controlinput.linear[xaxis].vel = 3
+    controlinput.linear[yaxis].vel = 3
+    controlinput.linear[zaxis].vel = 0
+
+#setting the mode, with lin(z,y,x) and ang(z,y,x)
+    controlinput.mode = 39
+    
+    client.setLocalBufferContents(MASTER_CONTROL,Pack(controlinput))
+
+    return("GateDeadReckon", cargo)
+
+def gatevisionfeed_transitions(cargo, previous):
+    print("Does Vision Have Feedback?")
+ 
+    data, active = client.getRemoteBufferContents(TARGET_LOCATION,FORWARD_VISION_SERVER_IP,FORWARD_VISION_SERVER_ID)    
+    seeGate = Unpack(Location, data)
+#this is for testing purposes only.  Remove later.
+    seeGate.confidence = 128
+
+    if seeGate.confidence[0] >= 128:
+	print("Vision has Feedback!")
+	return("GateVision", cargo)
+
+    print("Vision doesn't have feedback :(")
+    return("GateDeadReckon", cargo)
+
+def gatevision_transitions(cargo, previous):
+    print("Orienting Robot to Gate with Vision...")
+    time.sleep(.5)
+
+    data, active = client.getRemoteBufferContents(TARGET_LOCATION,FORWARD_VISION_SERVER_IP,FORWARD_VISION_SERVER_ID)
+    pose = client.getRemoteBufferContents(SENSORS_ANGULAR,SENSOR_SERVER_IP,SENSOR_SERVER_ID)
+    pointLocation  = Unpack(LocationArray, data)
+    poolPosition = Unpack(Angular, pose)
+    controlinput = ControlInput()
+
+    quaternion = (
+	pointLocation.pos[QUAT_X]
+	pointLocation.pos[QUAT_Y]
+	pointLocation.pos[QUAT_Z]
+	pointLocation.pos[QUAT_W])
+    euler = tf.transformations.euler_from_quaternion(quaternion)
+    roll = euler[xaxis]
+    pitch = euler[yaxis]
+    yaw = euler[zaxis]
+
+#step 1: check if the robot is killed
+    if previous == "GateVisionFeedback":
+	return("IsKilled", cargo)
+    
+#step 2: check if the downward camera has located the path
+    elif previous == "IsKilled":
+	return("PathFinder", cargo) 
