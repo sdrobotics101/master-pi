@@ -198,7 +198,7 @@ def pathfinder_transitions(cargo, previous):
 	
 	active = 1
 	seePath = Location
-	seePath.confidence = 127
+	seePath.confidence = 128
 	if active:
 		if seePath.confidence >= CONFIDENCE:
 			print("The path has been spotted!")
@@ -218,9 +218,9 @@ def buoydr_transitions(cargo, previous):
 
 #step 0: broadcast goals to all other pis
 	goals = Goals()
-	goals.forwardVision = GOALS_FIND_RED_BUOY
-	goals.downwardVision = GOALS_FIND_PATH
-	goals.sonar = GOALS_NONE
+	goals.forwardVision = GOAL_FIND_RED_BUOY
+	goals.downwardVision = GOAL_FIND_PATH
+	goals.sonar = GOAL_NONE
 
 	client.setLocalBufferContents(MASTER_GOALS,Pack(goals))
 
