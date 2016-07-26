@@ -95,9 +95,9 @@ def gatedr_transitions(cargo, previous):
 	controlinput.angular[zaxis].pos[TIME] = 0
 
 #setting linear velocity
-	controlinput.linear[xaxis].vel = 3
-	controlinput.linear[yaxis].vel = 3
-	controlinput.linear[zaxis].vel = 0
+	controlinput.linear[xaxis].vel = XVEL
+	controlinput.linear[yaxis].vel = YVEL
+	controlinput.linear[zaxis].vel = ZVEL
 
 #setting the mode, with lin(z,y,x) and ang(z,y,x)
 	controlinput.mode = 39
@@ -243,6 +243,27 @@ def buoydr_transitions(cargo, previous):
 	elif previous == "IsKilled":
 		return("CheckRed", cargo)
 
+#step 3: set velocity in m/s
+	controlinput = ControlInput()
+
+#setting angular Position
+	controlinput.angular[xaxis].pos[POSITION] = 0
+	controlinput.angular[xaxis].pos[TIME] = 0
+	controlinput.angular[yaxis].pos[POSITION] = 0
+	controlinput.angular[yaxis].pos[TIME] = 0
+	controlinput.angular[zaxis].pos[POSITION] = 0
+	controlinput.angular[zaxis].pos[TIME] = 0
+
+#setting linear velocity
+	controlinput.linear[xaxis].vel = XVEL
+	controlinput.linear[yaxis].vel = YVEL
+	controlinput.linear[zaxis].vel = ZVEL
+
+#setting the mode, with lin(z,y,x) and ang(z,y,x)
+	controlinput.mode = 39
+
+	client.setLocalBufferContents(MASTER_CONTROL,Pack(controlinput))
+
 	return("BuoyDeadReckon", cargo)
 
 def checkred_transitions(cargo, previous):
@@ -275,6 +296,15 @@ def checkyellow_transitions(cargo, previous):
 	active = 1
 	seeYellow = Location()
 	poolPosition = Angular()
+	
+#step 0: broadcast goals to all other pis
+	goals = Goals()
+	goals.forwardVision = GOAL_FIND_YELLOW_BUOY
+	goals.downwardVision = GOAL_FIND_PATH
+	goals.sonar = GOAL_NONE
+	
+	client.setLocalBufferContents(MASTER_GOALS,Pack(goals))
+
 #testing var
 	poolPosition.pos[QUAT_W] = 0
 	poolPosition.pos[QUAT_X] = 0
@@ -282,10 +312,12 @@ def checkyellow_transitions(cargo, previous):
 	poolPosition.pos[QUAT_Z] = 0
 
 	controlinput = ControlInput()
+	
 #testing var
 	seeYellow.confidence = 128
 	seeYellow.loctype = YELLOW	
 
+#step 0.5 Converting from quaternion to euler pool coordinates
 	if active:
 		quaternion = (
  		poolPosition.pos[QUAT_W],
@@ -297,6 +329,7 @@ def checkyellow_transitions(cargo, previous):
 		pitch = euler[yaxis]
 		yaw = euler[zaxis]
 
+#step 1 If the confidence level is met, correct course
 	if active:
 		if seeYellow.confidence >= CONFIDENCE and seeYellow.loctype == YELLOW:
 			print("We have a visual! Correcting course...")
@@ -329,9 +362,11 @@ def buoyvision_transitions(cargo, previous):
 	print("Moving to yellow Buoy...")
 	time.sleep(.5)
 
+#step 1: Check if the robot is killed
 	if previous == "CheckRed" or previous == "BouyVision" or previous == "CheckYellow":
 		return("IsKilled", cargo)
 
+#step 2: Check/navigate to the yellow buoy
 	elif previous == "IsKilled":
 		return("CheckYellow", cargo)
 
