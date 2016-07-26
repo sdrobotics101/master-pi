@@ -13,28 +13,14 @@ from Navigation import *
 from Vision import *
 from Serialization import *
 from Quaternions import *
-
 from statemachine import StateMachine
-
-def start_transitions(cargo, previous):
-	print("Resetting Position and Starting...")
-	sensorreset = SensorReset()
-#this sets the x,y,and z axes to 0, resetting the pool coordinates at the dock
-	sensorreset.pos[xaxis] = 0
-	sensorreset.pos[yaxis] = 0
-	sensorreset.pos[zaxis] = 0
-#this toggles the boolean change
-	sensorreset.reset = not sensorreset.reset
-#this packs it all up
-	client.setLocalBufferContents(MASTER_SENSOR_RESET,Pack(sensorreset))
-
-	return("GateDeadReckon", cargo)
 
 def kill_transitions(cargo, previous):
 	print("Checking if the robot is killed...")
 	time.sleep(.5)
 #keeps on checking whether the robot is killed or not
 	return("IsKilled", cargo)
+
 
 def iskilled_transitions(cargo, previous):
 	print("Is the robot killed?")
@@ -44,13 +30,10 @@ def iskilled_transitions(cargo, previous):
 	killObject = Kill()
 	killObject.isKilled = False
 	active = True
-
+	
 	print(killObject.isKilled)
+	
 	if killObject.isKilled == True or active == False:
-#       When "Kill" calls "IsKilled", if it gets a return of
-#       previous = "Kill", the robot is still killed, but
-#       if the return of previous = "IsKilled", the robot
-#       is no longer killed, and transitions to "Start".
 		print("The robot is killed")
 		return("Kill", cargo)
 
@@ -58,6 +41,25 @@ def iskilled_transitions(cargo, previous):
 		print("The robot is not killed, starting...")
 		return("Start", cargo)
 	return(previous, cargo)
+	
+	
+def start_transitions(cargo, previous):
+	print("Resetting Position and Starting...")
+	sensorreset = SensorReset()
+
+#this sets the x,y,and z axes to 0, resetting the pool coordinates at the dock
+	sensorreset.pos[xaxis] = 0
+	sensorreset.pos[yaxis] = 0
+	sensorreset.pos[zaxis] = 0
+
+#this toggles the boolean change
+	sensorreset.reset = not sensorreset.reset
+
+#this packs it all up
+	client.setLocalBufferContents(MASTER_SENSOR_RESET,Pack(sensorreset))
+
+	return("GateDeadReckon", cargo)
+	
 	
 def gatedr_transitions(cargo, previous):
 	print("Navigating to Gate using Dead Reckoning...") 
@@ -106,6 +108,7 @@ def gatedr_transitions(cargo, previous):
 
 	return("GateDeadReckon", cargo)
 
+
 def gatevisionfeed_transitions(cargo, previous):
 	print("Does Vision Have Feedback?")
  
@@ -113,8 +116,7 @@ def gatevisionfeed_transitions(cargo, previous):
 	active = 1 #TODO testing var
 	seeGate = LocationArray()
 	if active:
-		#seeGate = Unpack(LocationArray, buff)
-		#print(list(buff))
+		SeeGate = Unpack(LocationArray, buff)
 #this is for testing purposes only.  Remove later.
 		seeGate.locations[0].confidence = 128
 		seeGate.locations[1].confidence = 128
@@ -125,6 +127,7 @@ def gatevisionfeed_transitions(cargo, previous):
 
 	print("Vision doesn't have feedback :(")
 	return("GateDeadReckon", cargo)
+
 
 def gatevision_transitions(cargo, previous):
 	print("Orienting Robot to Gate with Vision...")
@@ -200,16 +203,17 @@ def gatevision_transitions(cargo, previous):
 	print("Orientatinon failed.")
 	return("GateDeadReckon", cargo)
 
+
 def pathfinder_transitions(cargo, previous):
 	print("in pathfinder_transitions")
 
 #	data, active = client.getRemoteBufferContents(TARGET_LOCATION,DOWNWARD_VISION_SERVER_IP,DOWNWARD_VISION_SERVER_ID)
 #	seePath = Unpack(Location, data)
 #this is for testing purposes only.  Remove later.
-	
 	active = 1
 	seePath = Location
 	seePath.confidence = 127
+
 	if active:
 		if seePath.confidence >= CONFIDENCE:
 			print("The path has been spotted!")
@@ -218,10 +222,12 @@ def pathfinder_transitions(cargo, previous):
 	print("No path spotted :(")
 	return(previous, cargo)
 
+
 def pathorient_transitions(cargo, previous):
 	print("Orienting robot to path...")
 	time.sleep(.5)
 	return("BuoyDeadReckon", cargo)
+
 
 def buoydr_transitions(cargo, previous):
 	print("Dead Reckoning towards buoys...")
@@ -266,6 +272,7 @@ def buoydr_transitions(cargo, previous):
 
 	return("BuoyDeadReckon", cargo)
 
+
 def checkred_transitions(cargo, previous):
 	print("Checking if camera sees a red buoy...")
 
@@ -283,6 +290,7 @@ def checkred_transitions(cargo, previous):
 			return("BuoyVision", cargo)
 
 	return("BuoyDeadReckon", cargo)
+
 
 def checkyellow_transitions(cargo, previous):
 	print("Looking for the yellow buoy...")
@@ -358,6 +366,7 @@ def checkyellow_transitions(cargo, previous):
 	print("no visual :(")
 	return("BouyDeadReckon", cargo)
     
+    
 def buoyvision_transitions(cargo, previous):
 	print("Moving to yellow Buoy...")
 	time.sleep(.5)
@@ -372,6 +381,7 @@ def buoyvision_transitions(cargo, previous):
 
 	return("BuoyVision", cargo) 
 
+
 if __name__== "__main__":
 	print("Initializing Client")
 	client = pydsm.Client(MASTER_SERVER_ID, 60, True)
@@ -384,7 +394,6 @@ if __name__== "__main__":
 	controlinput = ControlInput()
 	goals = Goals()
 	sensorreset = SensorReset()
-    # TODO perhaps initialize these with values first?
 	client.setLocalBufferContents(MASTER_CONTROL,Pack(controlinput))
 	client.setLocalBufferContents(MASTER_GOALS,Pack(goals))
 	client.setLocalBufferContents(MASTER_SENSOR_RESET,Pack(sensorreset))
