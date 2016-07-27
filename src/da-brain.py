@@ -267,7 +267,7 @@ def pathorient_transitions(cargo, previous):
 		controlinput.angular[yaxis].pos[TIME] = 0
 		controlinput.angular[zaxis].pos[POSITION] = yaw + orientZ
 		controlinput.angular[zaxis].pos[TIME] = 0
- 	return("BuoyDeadReckon", cargo)
+	return("BuoyDeadReckon", cargo)
 
 def buoydr_transitions(cargo, previous):
 	print("Dead Reckoning towards buoys...")
