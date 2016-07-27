@@ -208,10 +208,10 @@ def pathfinder_transitions(cargo, previous):
 	print("in pathfinder_transitions")
 
 #	data, active = client.getRemoteBufferContents(TARGET_LOCATION,DOWNWARD_VISION_SERVER_IP,DOWNWARD_VISION_SERVER_ID)
-#	seePath = Unpack(Location, data)
+#	seePath = Unpack(LocationAndRotation, data)
 #this is for testing purposes only.  Remove later.
 	active = 1
-	seePath = Location
+	seePath = LocationAndRotation
 	seePath.confidence = 127
 
 	if active:
@@ -226,8 +226,48 @@ def pathfinder_transitions(cargo, previous):
 def pathorient_transitions(cargo, previous):
 	print("Orienting robot to path...")
 	time.sleep(.5)
-	return("BuoyDeadReckon", cargo)
+#	data, active = client.getRemoteBufferContents(TARGET_LOCATION,FORWARD_VISION_SERVER_IP,FORWARD_VISION_SERVER_ID)    
+#	pose, ret = client.getREmoteBufferContents(SENSORS_ANGULAR,SENSORS_SERVER_IP,SENSORS_SERVER_ID)
+#	orient = Unpack(LocationAndRotation, data)
+#	poolPosition = Unpack(Angular, pose)
 
+#for testing
+	active = 1
+	orient = LocationAndRotation()
+	poolPosition = Angular()
+
+#testing var
+	poolPosition.pos[QUAT_W] = 0
+	poolPosition.pos[QUAT_X] = 0
+	poolPosition.pos[QUAT_Y] = 0
+	poolPosition.pos[QUAT_Z] = 0
+
+	controlinput = ControlInput()
+	
+#step 0.5 Converting from quaternion to euler pool coordinates
+	if active:
+		quaternion = (
+ 		poolPosition.pos[QUAT_W],
+		poolPosition.pos[QUAT_X],
+		poolPosition.pos[QUAT_Y],
+		poolPosition.pos[QUAT_Z])
+		euler = test_q2e(quaternion)
+		roll = euler[xaxis]
+		pitch = euler[yaxis]
+		yaw = euler[zaxis]
+
+	if active:
+		print("Correcting course...")
+		orientX = orient.xrot
+		orientY = orient.yrot
+		orientZ = orient.zrot
+		controlinput.angular[xaxis].pos[POSITION] = 0
+		controlinput.angular[xaxis].pos[TIME] = 0
+		controlinput.angular[yaxis].pos[POSITION] = 0
+		controlinput.angular[yaxis].pos[TIME] = 0
+		controlinput.angular[zaxis].pos[POSITION] = yaw + orientZ
+		controlinput.angular[zaxis].pos[TIME] = 0
+ 	return("BuoyDeadReckon", cargo)
 
 def buoydr_transitions(cargo, previous):
 	print("Dead Reckoning towards buoys...")
