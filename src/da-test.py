@@ -16,23 +16,24 @@ def setKill(isKilled):
     motor.isKilled = isKilled
     motorClient.setLocalBufferContents(MOTOR_KILL, Pack(motor))
 
-# def setLoc(type, file):
-    # if (type == )
+def setLoc(type, file):
+    if (type == fv)
+        
 
 
 if __name__ == "__main__":
     print("Initializing Client")
     sensorClient = pydsm.Client(SENSOR_SERVER_ID, 71, True)
-    forwardVisionClient = pydsm.Client(FORWARD_VISION_SERVER_ID, 72, True)
-    downwardVisionClient = pydsm.Client(DOWNWARD_VISION_SERVER_ID, 73, True)
-    sonarClient = pydsm.Client(SONAR_SERVER_ID, 74, True)
-    motorClient = pydsm.Client(MOTOR_SERVER_ID, 75, True)
+    motorClient = pydsm.Client(MOTOR_SERVER_ID, 72, True)
+    forwardVisionClient = pydsm.Client(FORWARD_VISION_SERVER_ID, 73, True)
+    downwardVisionClient = pydsm.Client(DOWNWARD_VISION_SERVER_ID, 74, True)
+    sonarClient = pydsm.Client(SONAR_SERVER_ID, 75, True)
 
     print("Creating Local Buffers")
     sensorClient.registerLocalBuffer(SENSORS_LINEAR, sizeof(Linear), False)
     sensorClient.registerLocalBuffer(SENSORS_ANGULAR, sizeof(Angular), False)
     forwardVisionClient.registerLocalBuffer(TARGET_LOCATION, sizeof(LocationArray), False)
-    downwardVisionClient.registerLocalBuffer(TARGET_LOCATION, sizeof(LocationArray), False)
+    downwardVisionClient.registerLocalBuffer(TARGET_LOCATION_AND_ROTATION, sizeof(LocationArray), False)
     sonarClient.registerLocalBuffer(TARGET_LOCATION, sizeof(LocationArray), False)
     motorClient.registerLocalBuffer(MOTOR_KILL, sizeof(Kill), False)
     time.sleep(1)
@@ -44,10 +45,10 @@ if __name__ == "__main__":
     motor = Kill()
     sensorClient.setLocalBufferContents(SENSORS_LINEAR, Pack(linear))
     sensorClient.setLocalBufferContents(SENSORS_ANGULAR, Pack(angular))
-    forwardVisionClient.setLocalBufferContents(TARGET_LOCATION, Pack(fvLoc))
-    downwardVisionClient.setLocalBufferContents(TARGET_LOCATION, Pack(dvLoc))
+    forwardVisionClient.setLocalBufferContents(TARGET_LOCATION_AND_ROTATION, Pack(fvLoc))
+    downwardVisionClient.setLocalBufferContents(TARGET_LOCATION_AND_ROTATION, Pack(dvLoc))
     sonarClient.setLocalBufferContents(TARGET_LOCATION, Pack(sonarLoc))
-    setKill(False)
+    setKill(True)
 
     print("Creating Remote Buffers")
     sensorClient.registerRemoteBuffer(MASTER_CONTROL, MASTER_SERVER_IP, MASTER_SERVER_ID)
@@ -69,6 +70,7 @@ if __name__ == "__main__":
             elif (tokens[0] == "unkill"):
                 print("Unkilling the bot")
                 setKill(False)
+            # elif (tokens[0] == "state")
             else:
                 print("unknown")
     except KeyboardInterrupt:
