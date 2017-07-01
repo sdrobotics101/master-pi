@@ -1,4 +1,0 @@
-after cloning cd into cloning directory and type
-git submodule update --init --recursive
-
-use the prepbuild.sh in the directory then see if stuff works

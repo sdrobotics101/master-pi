@@ -1,6 +1,6 @@
 [submodule "DistributedSharedMemory"]
 	path = DistributedSharedMemory
-	url = git@github.com:rahulsalvi/DistributedSharedMemory.git
+	url = git@gitlab.com:sdrobotics101/DistributedSharedMemory.git
 [submodule "PythonSharedBuffers"]
 	path = PythonSharedBuffers
 	url = git@gitlab.com:sdrobotics101/PythonSharedBuffers.git
