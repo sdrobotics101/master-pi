@@ -1,4 +1,3 @@
-
 # Created by https://www.gitignore.io/api/c++,python,cmake
 
 ### C++ ###
@@ -139,3 +138,4 @@ Session.vim
 # Other files that seem to have gotten created
 *~
 .idea
+*.icloud
