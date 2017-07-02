@@ -1,12 +1,10 @@
 import sys
+
 sys.path.insert(0, '../DistributedSharedMemory/build')
 sys.path.insert(0, '../PythonSharedBuffers/src')
 from Constants import *
 import pydsm
-import os
 import time
-import pprint
-from ctypes import *
 from Sensor import *
 from Master import *
 from Navigation import *
@@ -14,31 +12,34 @@ from Vision import *
 from Serialization import *
 
 
-def setKill(isKilled):
-    motor.isKilled = isKilled
+def set_kill(is_killed):
+    motor.isKilled = is_killed
     motorClient.setLocalBufferContents(MOTOR_KILL, Pack(motor))
 
-def set(type, file):
-    if (type == 'fv'):
-        getVarFromFile('TestingVars/FV/' + file)
+
+def set_data(data_type, file_path):
+    if data_type == 'fv':
+        get_data_from_file('TestingVars/FV/' + file_path)
         forwardVisionClient.setLocalBufferContents(TARGET_LOCATION_AND_ROTATION, Pack(data.data))
-    elif (type == 'dv'):
-        getVarFromFile('TestingVars/DV/' + file)
+    elif data_type == 'dv':
+        get_data_from_file('TestingVars/DV/' + file_path)
         downwardVisionClient.setLocalBufferContents(TARGET_LOCATION_AND_ROTATION, Pack(data.data))
-    elif (type == 'sonar'):
-        getVarFromFile('TestingVars/Sonar/' + file)
+    elif data_type == 'sonar':
+        get_data_from_file('TestingVars/Sonar/' + file_path)
         sonarClient.setLocalBufferContents(TARGET_LOCATION_AND_ROTATION, Pack(data.data))
     else:
         print ('Unknown data type')
     pp(data.data)
 
-def getVarFromFile(filename):
+
+def get_data_from_file(filename):
     import imp
     f = open(filename)
     print ('reading file')
     global data
     data = imp.load_source('data', '', f)
     f.close()
+
 
 def pp(s):
     print ('printing data:')
@@ -73,12 +74,12 @@ if __name__ == "__main__":
     forwardVisionClient.setLocalBufferContents(TARGET_LOCATION_AND_ROTATION, Pack(fvLoc))
     downwardVisionClient.setLocalBufferContents(TARGET_LOCATION_AND_ROTATION, Pack(dvLoc))
     sonarClient.setLocalBufferContents(TARGET_LOCATION, Pack(sonarLoc))
-    setKill(True)
+    set_kill(True)
 
     print("Creating Remote Buffers")
     sensorClient.registerRemoteBuffer(MASTER_CONTROL, MASTER_SERVER_IP, MASTER_SERVER_ID)
-    sensorClient.registerRemoteBuffer(MASTER_GOALS,  MASTER_SERVER_IP, MASTER_SERVER_ID)
-    sensorClient.registerRemoteBuffer(MASTER_SENSOR_RESET,  MASTER_SERVER_IP, MASTER_SERVER_ID)
+    sensorClient.registerRemoteBuffer(MASTER_GOALS, MASTER_SERVER_IP, MASTER_SERVER_ID)
+    sensorClient.registerRemoteBuffer(MASTER_SENSOR_RESET, MASTER_SERVER_IP, MASTER_SERVER_ID)
     time.sleep(1)
     sensorreset = SensorReset()
     sensorreset.reset = False
@@ -87,18 +88,18 @@ if __name__ == "__main__":
         print("Commands: kill; unkill; set type fileName; exit")
         while (1):
             tokens = input("> ").split()
-            if (tokens[0] == "exit"):
+            if tokens[0] == "exit":
                 print("exiting")
                 break
-            elif (tokens[0] == "kill"):
+            elif tokens[0] == "kill":
                 print("Killing the bot")
-                setKill(True)
-            elif (tokens[0] == "unkill"):
+                set_kill(True)
+            elif tokens[0] == "unkill":
                 print("Unkilling the bot")
-                setKill(False)
-            elif (tokens[0] == "set" and len(tokens) == 3):
+                set_kill(False)
+            elif tokens[0] == "set" and len(tokens) == 3:
                 print("Updating values...")
-                set(tokens[1], tokens[2])
+                set_data(tokens[1], tokens[2])
             else:
                 print("unknown")
     except KeyboardInterrupt:
