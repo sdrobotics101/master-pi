@@ -122,15 +122,15 @@ def gatevision_transitions(cargo, previous):
     time.sleep(.5)
     data, active = client.getRemoteBufferContents(TARGET_LOCATION, FORWARD_VISION_SERVER_IP, FORWARD_VISION_SERVER_ID)
     pose, ret = client.getRemoteBufferContents(SENSORS_ANGULAR, SENSOR_SERVER_IP, SENSOR_SERVER_ID)
-    pointLocation = Unpack(LocationArray, data)
-    poolPosition = Unpack(Angular, pose)
+    point_loc = Unpack(LocationArray, data)
+    pool_position = Unpack(Angular, pose)
 
     controlinput = ControlInput()
     quaternion = (
-        poolPosition.pos[QUAT_W],
-        poolPosition.pos[QUAT_X],
-        poolPosition.pos[QUAT_Y],
-        poolPosition.pos[QUAT_Z])
+        pool_position.pos[QUAT_W],
+        pool_position.pos[QUAT_X],
+        pool_position.pos[QUAT_Y],
+        pool_position.pos[QUAT_Z])
     euler = test_q2e(quaternion)
     roll = euler[xaxis]
     pitch = euler[yaxis]
@@ -144,23 +144,23 @@ def gatevision_transitions(cargo, previous):
     elif previous == "IsKilled":
         return "PathFinder", cargo
 
-    if previous == "PathFinder" and pointLocation.locations[0].loctype == GATEPOLE:
+    if previous == "PathFinder" and point_loc.locations[0].loctype == GATEPOLE:
         print("Orienting robot to gate...")
-        gateX = (pointLocation.locations[0].x + pointLocation.locations[1].x) / 2
-        gateY = (pointLocation.locations[0].y + pointLocation.locations[1].y) / 2
-        gateZ = (pointLocation.locations[0].z + pointLocation.locations[1].z) / 2
+        gate_x = (point_loc.locations[0].x + point_loc.locations[1].x) / 2
+        gate_y = (point_loc.locations[0].y + point_loc.locations[1].y) / 2
+        gate_z = (point_loc.locations[0].z + point_loc.locations[1].z) / 2
 
         controlinput.angular[xaxis].pos[POSITION] = 0
         controlinput.angular[xaxis].pos[TIME] = 0
         controlinput.angular[yaxis].pos[POSITION] = 0
         controlinput.angular[yaxis].pos[TIME] = 0
-        controlinput.angular[zaxis].pos[POSITION] = math.atan(gateY / gateX)
+        controlinput.angular[zaxis].pos[POSITION] = math.atan(gate_y / gate_x)
         controlinput.angular[zaxis].pos[TIME] = 0
 
         mat_yaw = np.array([[math.cos(-yaw), -math.sin(-yaw)], [math.sin(-yaw), math.cos(-yaw)]])
-        mat_pos = np.array([[gateX], [gateY]])
+        mat_pos = np.array([[gate_x], [gate_y]])
         mat_pos = np.dot(mat_yaw, mat_pos)
-        # This velocity value is changable, it is setting the total velocity when going towards the gate
+        # This velocity value is changeable, it is setting the total velocity when going towards the gate
         # TODO: Change this velocity
         vel = 1
 
@@ -223,6 +223,7 @@ def pathorient_transitions(cargo, previous):
 
 
 def buoydr_transitions(cargo, previous):
+    global color
     print("Dead Reckoning towards buoys...")
     time.sleep(.5)
 
@@ -241,6 +242,7 @@ def buoydr_transitions(cargo, previous):
     # step 3: check if the robot sees the red buoy
     elif previous == "IsKilled":
         color = "red"
+        print("can red be seen?")
         return "CheckBuoy", cargo
 
     # step 4: set velocity in m/s
@@ -268,7 +270,8 @@ def buoydr_transitions(cargo, previous):
 
 
 def checkbuoy_transitions(cargo, previous):
-    print("Looking for the" + color + "buoy...")
+    global color
+    print("Looking for the " + color + " buoy...")
     time.sleep(.5)
     data, active = client.getRemoteBufferContents(TARGET_LOCATION, FORWARD_VISION_SERVER_IP, FORWARD_VISION_SERVER_ID)
     pose, ret = client.getRemoteBufferContents(SENSORS_ANGULAR, SENSOR_SERVER_IP, SENSOR_SERVER_ID)
@@ -276,14 +279,14 @@ def checkbuoy_transitions(cargo, previous):
     pool_position = Unpack(Angular, pose)
 
     # step 1: broadcast goals to all other pis
-    bouy_goals = Goals()
-    bouy_goals.downwardVision = GOAL_FIND_PATH
-    bouy_goals.sonar = GOAL_NONE
+    buoy_goals = Goals()
+    buoy_goals.downwardVision = GOAL_FIND_PATH
+    buoy_goals.sonar = GOAL_NONE
     if color == "yellow":
-        bouy_goals.forwardVision = GOAL_FIND_YELLOW_BUOY
+        buoy_goals.forwardVision = GOAL_FIND_YELLOW_BUOY
     elif color == "red":
-        bouy_goals.forwardVision = GOAL_FIND_RED_BUOY
-    client.setLocalBufferContents(MASTER_GOALS, Pack(bouy_goals))
+        buoy_goals.forwardVision = GOAL_FIND_RED_BUOY
+    client.setLocalBufferContents(MASTER_GOALS, Pack(buoy_goals))
 
     buoy_control_input = ControlInput()
 
@@ -300,15 +303,15 @@ def checkbuoy_transitions(cargo, previous):
 
     # step 3 If the confidence level is met, correct course
     if color == "yellow":
-        if ord(see.confidence) >= CONFIDENCE and see.loctype == YELLOW:
+        if see.confidence >= CONFIDENCE and see.loctype == YELLOW:
             buoy_found(buoy_control_input, see, yaw)
-            return "BuoyVision", cargo
+            return "SonarDeadReckon", cargo
     elif color == "red":
-        if ord(see.confidence) >= CONFIDENCE and see.loctype == RED:
+        if see.confidence >= CONFIDENCE and see.loctype == RED:
             buoy_found(buoy_control_input, see, yaw)
             return "BuoyVision", cargo
     print("no visual :(")
-    return "BouyDeadReckon", cargo
+    return "BuoyDeadReckon", cargo
 
 
 def buoy_found(buoy_control_input, see, yaw):
@@ -335,11 +338,12 @@ def buoy_found(buoy_control_input, see, yaw):
 
 
 def buoyvision_transitions(cargo, previous):
+    global color
     print("Moving to yellow Buoy...")
     time.sleep(.5)
 
     # step 1: Check if the robot is killed
-    if previous == "CheckBuoy" or previous == "BouyVision":
+    if previous == "CheckBuoy" or previous == "BuoyVision":
         return "IsKilled", cargo
 
     # step 2: Check/navigate to the yellow buoy
@@ -348,6 +352,101 @@ def buoyvision_transitions(cargo, previous):
         return "CheckBuoy", cargo
 
     return "BuoyVision", cargo
+
+
+def sonarfinder_transitions(cargo, previous):
+    print("in sonarfinder_transitions")
+
+    data, active = client.getRemoteBufferContents(TARGET_LOCATION, SONAR_SERVER_IP, SONAR_SERVER_ID)
+    see_path = Unpack(LocationAndRotation, data)
+
+    if ord(see_path.confidence) >= CONFIDENCE:
+        print("Detected Octogon Pinger!")
+        return "SonarOrientation", cargo
+
+    print("No pinger detected :(")
+    return previous, cargo
+
+
+def sonarorient_transitions(cargo, previous):
+    print("Orienting robot towards pinger...")
+    time.sleep(.5)
+    data, active = client.getRemoteBufferContents(TARGET_LOCATION, FORWARD_VISION_SERVER_IP, FORWARD_VISION_SERVER_ID)
+    pose, ret = client.getRemoteBufferContents(SENSORS_ANGULAR, SENSOR_SERVER_IP, SENSOR_SERVER_ID)
+    orient = Unpack(LocationAndRotation, data)
+    pool_position = Unpack(Angular, pose)
+    control_input = ControlInput()
+
+    if orient.confidence >= CONFIDENCE:
+        return "EndOfRun", cargo
+
+    # Converting from quaternion to euler pool coordinates
+    quaternion = (
+        pool_position.pos[QUAT_W],
+        pool_position.pos[QUAT_X],
+        pool_position.pos[QUAT_Y],
+        pool_position.pos[QUAT_Z])
+    euler = test_q2e(quaternion)
+    roll = euler[xaxis]
+    pitch = euler[yaxis]
+    yaw = euler[zaxis]
+
+    print("Correcting course...")
+    orient_x = orient.xrot
+    orient_y = orient.yrot
+    orient_z = orient.zrot
+    control_input.angular[xaxis].pos[POSITION] = 0
+    control_input.angular[xaxis].pos[TIME] = 0
+    control_input.angular[yaxis].pos[POSITION] = 0
+    control_input.angular[yaxis].pos[TIME] = 0
+    control_input.angular[zaxis].pos[POSITION] = yaw + orient_z
+    control_input.angular[zaxis].pos[TIME] = 0
+
+    return "OctoDeadReckon", cargo
+
+
+def sonardr_transitions(cargo, previous):
+    global color
+    print("Dead Reckoning towards the octogon...")
+    time.sleep(.5)
+
+    # step 1: broadcast goals to all other pis
+    buoy_goals = Goals()
+    buoy_goals.forwardVision = GOAL_NONE
+    buoy_goals.downwardVision = GOAL_NONE
+    buoy_goals.sonar = GOAL_FIND_OCTOGON
+
+    client.setLocalBufferContents(MASTER_GOALS, Pack(buoy_goals))
+
+    # step 2: check if the robot is killed
+    if previous == "SonarOrientation" or previous == "OctoDeadReckon":
+        return "IsKilled", cargo
+
+    if previous == "IsKilled":
+        return "SonarFinder", cargo
+
+    # step 3: set velocity in m/s
+    controlinput = ControlInput()
+
+    # setting angular Position
+    controlinput.angular[xaxis].pos[POSITION] = 0
+    controlinput.angular[xaxis].pos[TIME] = 0
+    controlinput.angular[yaxis].pos[POSITION] = 0
+    controlinput.angular[yaxis].pos[TIME] = 0
+    controlinput.angular[zaxis].pos[POSITION] = 0
+    controlinput.angular[zaxis].pos[TIME] = 0
+
+    # setting linear velocity
+    controlinput.linear[xaxis].vel = XVEL
+    controlinput.linear[yaxis].vel = YVEL
+    controlinput.linear[zaxis].vel = ZVEL
+
+    # setting the mode, with lin(z,y,x) and ang(z,y,x)
+    controlinput.mode = 39
+
+    client.setLocalBufferContents(MASTER_CONTROL, Pack(controlinput))
+
+    return "OctoDeadReckon", cargo
 
 
 if __name__ == "__main__":
@@ -392,6 +491,9 @@ if __name__ == "__main__":
     m.add_state("BuoyDeadReckon", buoydr_transitions)
     m.add_state("CheckBuoy", checkbuoy_transitions)
     m.add_state("BuoyVision", buoyvision_transitions)
+    m.add_state("SonarFinder", sonarfinder_transitions)
+    m.add_state("SonarOrientation", sonarorient_transitions)
+    m.add_state("OctoDeadReckon", sonardr_transitions)
     m.add_state("Error", None, end_state=1)
     m.add_state("EndOfRun", None, end_state=1)
 

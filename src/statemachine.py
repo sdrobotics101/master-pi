@@ -28,10 +28,10 @@ class StateMachine:
             (newState, cargo) = handler(cargo, previous)
             previous = current
             current = newState
-            print(current)
+            print("")
+            print("CURRENT STATE: " + current)
             if current.upper() in self.endStates:
                 print("reached ", current)
                 break 
             else:
                 handler = self.handlers[current.upper()]
-

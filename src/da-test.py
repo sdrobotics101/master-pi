@@ -20,7 +20,7 @@ def set_kill(is_killed):
 def set_data(data_type, file_path):
     if data_type == 'fv':
         get_data_from_file('TestingVars/FV/' + file_path)
-        forwardVisionClient.setLocalBufferContents(TARGET_LOCATION_AND_ROTATION, Pack(data.data))
+        forwardVisionClient.setLocalBufferContents(TARGET_LOCATION, Pack(data.data))
     elif data_type == 'dv':
         get_data_from_file('TestingVars/DV/' + file_path)
         downwardVisionClient.setLocalBufferContents(TARGET_LOCATION_AND_ROTATION, Pack(data.data))

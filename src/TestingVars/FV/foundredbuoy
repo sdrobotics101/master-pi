@@ -1,0 +1,16 @@
+import sys
+sys.path.insert(0, '../PythonSharedBuffers/src')
+from Constants import *
+import time
+from ctypes import *
+from Sensor import *
+from Master import *
+from Navigation import *
+from Vision import *
+from Serialization import *
+
+data = Location()
+data.confidence = 250
+data.loctype = 1
+data.x = 1
+
