@@ -18,6 +18,9 @@ Get kernel sources (from https://github.com/notro/rpi-source/wiki):
 Get driver source:
     git clone https://github.com/Myria-de/mt7610u_wifi_sta_v3002_dpo_20130916.git
 
+If that doesn't work, try:
+    git clone git@github.com:chenhaiq/mt7610u_wifi_sta_v3002_dpo_20130916.git
+
 Compile driver:
     cd mt7610u_wifi_sta_v3002_dpo_20130916
     make
