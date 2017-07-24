@@ -125,7 +125,6 @@ def gatevision_transitions(cargo, previous):
     point_loc = Unpack(LocationArray, data)
     pool_position = Unpack(Angular, pose)
 
-    controlinput = ControlInput()
     quaternion = (
         pool_position.pos[QUAT_W],
         pool_position.pos[QUAT_X],
@@ -150,24 +149,23 @@ def gatevision_transitions(cargo, previous):
         gate_y = (point_loc.locations[0].y + point_loc.locations[1].y) / 2
         gate_z = (point_loc.locations[0].z + point_loc.locations[1].z) / 2
 
-        controlinput.angular[xaxis].pos[POSITION] = 0
-        controlinput.angular[xaxis].pos[TIME] = 0
-        controlinput.angular[yaxis].pos[POSITION] = 0
-        controlinput.angular[yaxis].pos[TIME] = 0
-        controlinput.angular[zaxis].pos[POSITION] = math.atan(gate_y / gate_x)
-        controlinput.angular[zaxis].pos[TIME] = 0
+        control_input.angular[xaxis].pos[POSITION] = 0
+        control_input.angular[xaxis].pos[TIME] = 0
+        control_input.angular[yaxis].pos[POSITION] = 0
+        control_input.angular[yaxis].pos[TIME] = 0
+        control_input.angular[zaxis].pos[POSITION] = math.atan(gate_y / gate_x)
+        control_input.angular[zaxis].pos[TIME] = 0
 
         mat_yaw = np.array([[math.cos(-yaw), -math.sin(-yaw)], [math.sin(-yaw), math.cos(-yaw)]])
         mat_pos = np.array([[gate_x], [gate_y]])
         mat_pos = np.dot(mat_yaw, mat_pos)
         # This velocity value is changeable, it is setting the total velocity when going towards the gate
-        # TODO: Change this velocity
-        vel = 1
+        vel = VELOCITY
 
-        controlinput.linear[xaxis].vel = math.sqrt(pow(vel, 2) - math.pow(mat_pos[1, 0], 2))
-        controlinput.linear[yaxis].vel = mat_pos[1, 0]
-        controlinput.linear[zaxis].pos[POSITION] = 0
-        controlinput.linear[zaxis].pos[TIME] = 0
+        control_input.linear[xaxis].vel = math.sqrt(pow(vel, 2) - math.pow(mat_pos[1, 0], 2))
+        control_input.linear[yaxis].vel = mat_pos[1, 0]
+        control_input.linear[zaxis].pos[POSITION] = 0
+        control_input.linear[zaxis].pos[TIME] = 0
         return "GateVision", cargo
 
     print("Orientation failed.")
@@ -195,7 +193,6 @@ def pathorient_transitions(cargo, previous):
     pose, ret = client.getRemoteBufferContents(SENSORS_ANGULAR, SENSOR_SERVER_IP, SENSOR_SERVER_ID)
     orient = Unpack(LocationAndRotation, data)
     pool_position = Unpack(Angular, pose)
-    control_input = ControlInput()
 
     # Converting from quaternion to euler pool coordinates
     quaternion = (
@@ -218,6 +215,13 @@ def pathorient_transitions(cargo, previous):
     control_input.angular[yaxis].pos[TIME] = 0
     control_input.angular[zaxis].pos[POSITION] = yaw + orient_z
     control_input.angular[zaxis].pos[TIME] = 0
+
+    return "SetDepth", cargo
+
+
+def set_depth_transitions(cargo, previous):
+    control_input.linear[zaxis].pos[POSITION] = DEPTH
+    control_input.linear[zaxis].pos[TIME] = 0
 
     return "BuoyDeadReckon", cargo
 
@@ -246,25 +250,23 @@ def buoydr_transitions(cargo, previous):
         return "CheckBuoy", cargo
 
     # step 4: set velocity in m/s
-    controlinput = ControlInput()
-
     # setting angular Position
-    controlinput.angular[xaxis].pos[POSITION] = 0
-    controlinput.angular[xaxis].pos[TIME] = 0
-    controlinput.angular[yaxis].pos[POSITION] = 0
-    controlinput.angular[yaxis].pos[TIME] = 0
-    controlinput.angular[zaxis].pos[POSITION] = 0
-    controlinput.angular[zaxis].pos[TIME] = 0
+    control_input.angular[xaxis].pos[POSITION] = 0
+    control_input.angular[xaxis].pos[TIME] = 0
+    control_input.angular[yaxis].pos[POSITION] = 0
+    control_input.angular[yaxis].pos[TIME] = 0
+    control_input.angular[zaxis].pos[POSITION] = 0
+    control_input.angular[zaxis].pos[TIME] = 0
 
     # setting linear velocity
-    controlinput.linear[xaxis].vel = XVEL
-    controlinput.linear[yaxis].vel = YVEL
-    controlinput.linear[zaxis].vel = ZVEL
+    control_input.linear[xaxis].vel = XVEL
+    control_input.linear[yaxis].vel = YVEL
+    control_input.linear[zaxis].vel = ZVEL
 
     # setting the mode, with lin(z,y,x) and ang(z,y,x)
-    controlinput.mode = 39
+    control_input.mode = 39
 
-    client.setLocalBufferContents(MASTER_CONTROL, Pack(controlinput))
+    client.setLocalBufferContents(MASTER_CONTROL, Pack(control_input))
 
     return "BuoyDeadReckon", cargo
 
@@ -288,8 +290,6 @@ def checkbuoy_transitions(cargo, previous):
         buoy_goals.forwardVision = GOAL_FIND_RED_BUOY
     client.setLocalBufferContents(MASTER_GOALS, Pack(buoy_goals))
 
-    buoy_control_input = ControlInput()
-
     # step 2 Converting from quaternion to euler pool coordinates
     quaternion = (
         pool_position.pos[QUAT_W],
@@ -304,11 +304,11 @@ def checkbuoy_transitions(cargo, previous):
     # step 3 If the confidence level is met, correct course
     if color == "yellow":
         if see.confidence >= CONFIDENCE and see.loctype == YELLOW:
-            buoy_found(buoy_control_input, see, yaw)
+            buoy_found(control_input, see, yaw)
             return "SonarDeadReckon", cargo
     elif color == "red":
         if see.confidence >= CONFIDENCE and see.loctype == RED:
-            buoy_found(buoy_control_input, see, yaw)
+            buoy_found(control_input, see, yaw)
             return "BuoyVision", cargo
     print("no visual :(")
     return "BuoyDeadReckon", cargo
@@ -329,8 +329,7 @@ def buoy_found(buoy_control_input, see, yaw):
     mat_pos = np.array([[buoy_x], [buoy_y]])
     mat_pos = np.dot(mat_yaw, mat_pos)
     # This velocity value is changeable, it is setting the total velocity when going towards the gate
-    # TODO: Change this velocity
-    vel = 1
+    vel = VELOCITY
     buoy_control_input.linear[xaxis].vel = math.sqrt(pow(vel, 2) - math.pow(mat_pos[1, 0], 2))
     buoy_control_input.linear[yaxis].vel = mat_pos[1, 0]
     buoy_control_input.linear[zaxis].pos[POSITION] = 0
@@ -375,7 +374,6 @@ def sonarorient_transitions(cargo, previous):
     pose, ret = client.getRemoteBufferContents(SENSORS_ANGULAR, SENSOR_SERVER_IP, SENSOR_SERVER_ID)
     orient = Unpack(LocationAndRotation, data)
     pool_position = Unpack(Angular, pose)
-    control_input = ControlInput()
 
     if orient.confidence >= CONFIDENCE:
         return "EndOfRun", cargo
@@ -426,25 +424,23 @@ def sonardr_transitions(cargo, previous):
         return "SonarFinder", cargo
 
     # step 3: set velocity in m/s
-    controlinput = ControlInput()
-
     # setting angular Position
-    controlinput.angular[xaxis].pos[POSITION] = 0
-    controlinput.angular[xaxis].pos[TIME] = 0
-    controlinput.angular[yaxis].pos[POSITION] = 0
-    controlinput.angular[yaxis].pos[TIME] = 0
-    controlinput.angular[zaxis].pos[POSITION] = 0
-    controlinput.angular[zaxis].pos[TIME] = 0
+    control_input.angular[xaxis].pos[POSITION] = 0
+    control_input.angular[xaxis].pos[TIME] = 0
+    control_input.angular[yaxis].pos[POSITION] = 0
+    control_input.angular[yaxis].pos[TIME] = 0
+    control_input.angular[zaxis].pos[POSITION] = 0
+    control_input.angular[zaxis].pos[TIME] = 0
 
     # setting linear velocity
-    controlinput.linear[xaxis].vel = XVEL
-    controlinput.linear[yaxis].vel = YVEL
-    controlinput.linear[zaxis].vel = ZVEL
+    control_input.linear[xaxis].vel = XVEL
+    control_input.linear[yaxis].vel = YVEL
+    control_input.linear[zaxis].vel = ZVEL
 
     # setting the mode, with lin(z,y,x) and ang(z,y,x)
-    controlinput.mode = 39
+    control_input.mode = 39
 
-    client.setLocalBufferContents(MASTER_CONTROL, Pack(controlinput))
+    client.setLocalBufferContents(MASTER_CONTROL, Pack(control_input))
 
     return "OctoDeadReckon", cargo
 
@@ -488,6 +484,7 @@ if __name__ == "__main__":
     m.add_state("GateVision", gatevision_transitions)
     m.add_state("PathFinder", pathfinder_transitions)
     m.add_state("PathOrientation", pathorient_transitions)
+    m.add_state("SetDepth", set_depth_transitions)
     m.add_state("BuoyDeadReckon", buoydr_transitions)
     m.add_state("CheckBuoy", checkbuoy_transitions)
     m.add_state("BuoyVision", buoyvision_transitions)
